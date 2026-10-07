@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     SMTP_SENDER_EMAIL: str
     FRONTEND_URL: str = "http://localhost:8080"
     GOOGLE_CLIENT_ID: str
+    ADMIN_EMAIL: str = "alanterrier11@gmail.com"
 
     class Config:
         env_file = ".env"

@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     
     # Initialize admin user
     db = next(get_db())
-    admin_email = "alanterrier11@gmail.com"
+    admin_email = settings.ADMIN_EMAIL
     admin_user = db.query(User).filter(User.email == admin_email).first()
     if not admin_user:
         new_admin = User(
