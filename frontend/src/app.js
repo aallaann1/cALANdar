@@ -251,7 +251,15 @@ createApp({
 
         const initCalendar = () => {
             const calendarEl = document.getElementById('calendar');
-            if (!calendarEl || calendar) return;
+            if (!calendarEl) return;
+            
+            const isManager = Boolean(user.value && user.value.is_manager);
+            
+            if (calendar) {
+                calendar.setOption('editable', isManager);
+                calendar.render();
+                return;
+            }
             
             const isMobile = window.innerWidth < 640;
             
@@ -284,10 +292,11 @@ createApp({
                 slotMaxTime: '23:00:00',
                 nowIndicator: true,
                 events: [],
-                editable: user.value && user.value.is_manager,
-                selectable: true,
-                selectLongPressDelay: 250,
-                eventLongPressDelay: 250,
+                editable: isManager,
+                selectable: isManager,
+                selectLongPressDelay: 0,
+                eventLongPressDelay: 150,
+                longPressDelay: 150,
                 dateClick: (info) => {
                     if (user.value && user.value.is_manager) {
                         eventForm.value.editingEventIds = null;
