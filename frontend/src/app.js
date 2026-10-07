@@ -270,6 +270,23 @@ createApp({
                 nowIndicator: true,
                 events: [],
                 editable: user.value && user.value.is_manager,
+                selectable: true,
+                selectLongPressDelay: 250,
+                eventLongPressDelay: 250,
+                dateClick: (info) => {
+                    if (user.value && user.value.is_manager) {
+                        eventForm.value.editingEventIds = null;
+                        const start = info.dateStr.includes('T') ? info.dateStr.slice(0, 16) : `${info.dateStr}T09:00`;
+                        const startDate = new Date(start);
+                        const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+                        const pad = n => n < 10 ? '0' + n : n;
+                        const end = `${endDate.getFullYear()}-${pad(endDate.getMonth()+1)}-${pad(endDate.getDate())}T${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+                        
+                        eventForm.value.start_time = start;
+                        eventForm.value.end_time = end;
+                        showEventModal.value = true;
+                    }
+                },
                 eventDrop: async (info) => {
                     if (user.value && user.value.is_manager) {
                         try {
@@ -318,7 +335,6 @@ createApp({
                         };
                     }
                 },
-                selectable: true,
                 select: (info) => {
                     if (user.value && user.value.is_manager) {
                         eventForm.value.editingEventIds = null;
