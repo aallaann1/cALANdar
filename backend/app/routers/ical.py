@@ -5,6 +5,9 @@ from app.core.database import get_db
 from app.models import Event, User, Team
 from icalendar import Calendar, Event as IcalEvent
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+PARIS_TZ = ZoneInfo("Europe/Paris")
 
 router = APIRouter()
 
@@ -56,8 +59,12 @@ def get_user_ical(user_id: int, db: Session = Depends(get_db)):
 
         summary = f"{g['shift_type'].name} {names_str}".strip()
         ie.add('summary', summary)
-        ie.add('dtstart', g['start_time'])
-        ie.add('dtend', g['end_time'])
+        
+        start_dt = g['start_time'].replace(tzinfo=PARIS_TZ) if g['start_time'].tzinfo is None else g['start_time'].astimezone(PARIS_TZ)
+        end_dt = g['end_time'].replace(tzinfo=PARIS_TZ) if g['end_time'].tzinfo is None else g['end_time'].astimezone(PARIS_TZ)
+        
+        ie.add('dtstart', start_dt)
+        ie.add('dtend', end_dt)
         ie.add('dtstamp', datetime.utcnow())
         if g['shift_type'].color:
             ie.add('color', g['shift_type'].color)
@@ -104,8 +111,12 @@ def get_team_ical(team_id: int, db: Session = Depends(get_db)):
 
         summary = f"{g['shift_type'].name} {names_str}".strip()
         ie.add('summary', summary)
-        ie.add('dtstart', g['start_time'])
-        ie.add('dtend', g['end_time'])
+        
+        start_dt = g['start_time'].replace(tzinfo=PARIS_TZ) if g['start_time'].tzinfo is None else g['start_time'].astimezone(PARIS_TZ)
+        end_dt = g['end_time'].replace(tzinfo=PARIS_TZ) if g['end_time'].tzinfo is None else g['end_time'].astimezone(PARIS_TZ)
+        
+        ie.add('dtstart', start_dt)
+        ie.add('dtend', end_dt)
         ie.add('dtstamp', datetime.utcnow())
         if g['shift_type'].color:
             ie.add('color', g['shift_type'].color)
