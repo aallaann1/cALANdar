@@ -16,16 +16,52 @@ def get_user_ical(user_id: int, db: Session = Depends(get_db)):
     
     events = db.query(Event).filter(Event.user_id == user_id).all()
     
+    # Group events by (shift_type_id, start_time, end_time) to include coworkers on the same shift
+    groups = {}
+    for event in events:
+        key = (event.shift_type_id, event.start_time, event.end_time)
+        if key not in groups:
+            # Query all team events matching this slot to find all users
+            all_users_in_slot = []
+            if user.team_id:
+                slot_events = db.query(Event).join(User).filter(
+                    User.team_id == user.team_id,
+                    Event.shift_type_id == event.shift_type_id,
+                    Event.start_time == event.start_time,
+                    Event.end_time == event.end_time
+                ).all()
+                all_users_in_slot = [e.user for e in slot_events]
+            else:
+                all_users_in_slot = [event.user]
+            groups[key] = {
+                'shift_type': event.shift_type,
+                'start_time': event.start_time,
+                'end_time': event.end_time,
+                'users': all_users_in_slot
+            }
+
     cal = Calendar()
     cal.add('prodid', '-//cALANdar User Planning//mxm.dk//')
     cal.add('version', '2.0')
     
-    for event in events:
+    for g in groups.values():
         ie = IcalEvent()
-        ie.add('summary', f"Shift: {event.shift_type.name}")
-        ie.add('dtstart', event.start_time)
-        ie.add('dtend', event.end_time)
+        names = [u.first_name for u in g['users'] if u.first_name]
+        if not names:
+            names = ["Inconnu"]
+        if len(names) > 1:
+            names_str = ", ".join(names[:-1]) + " et " + names[-1]
+        else:
+            names_str = names[0]
+
+        summary = f"{g['shift_type'].name} {names_str}".strip()
+        ie.add('summary', summary)
+        ie.add('dtstart', g['start_time'])
+        ie.add('dtend', g['end_time'])
         ie.add('dtstamp', datetime.utcnow())
+        if g['shift_type'].color:
+            ie.add('color', g['shift_type'].color)
+            ie.add('x-apple-calendar-color', g['shift_type'].color)
         if user.team and user.team.address:
             ie.add('location', user.team.address)
         cal.add_component(ie)
@@ -40,16 +76,40 @@ def get_team_ical(team_id: int, db: Session = Depends(get_db)):
         
     events = db.query(Event).join(User).filter(User.team_id == team_id).all()
     
+    groups = {}
+    for event in events:
+        key = (event.shift_type_id, event.start_time, event.end_time)
+        if key not in groups:
+            groups[key] = {
+                'shift_type': event.shift_type,
+                'start_time': event.start_time,
+                'end_time': event.end_time,
+                'users': []
+            }
+        groups[key]['users'].append(event.user)
+
     cal = Calendar()
     cal.add('prodid', '-//cALANdar Team Planning//mxm.dk//')
     cal.add('version', '2.0')
     
-    for event in events:
+    for g in groups.values():
         ie = IcalEvent()
-        ie.add('summary', f"[{event.user.first_name} {event.user.last_name}] {event.shift_type.name}")
-        ie.add('dtstart', event.start_time)
-        ie.add('dtend', event.end_time)
+        names = [u.first_name for u in g['users'] if u.first_name]
+        if not names:
+            names = ["Inconnu"]
+        if len(names) > 1:
+            names_str = ", ".join(names[:-1]) + " et " + names[-1]
+        else:
+            names_str = names[0]
+
+        summary = f"{g['shift_type'].name} {names_str}".strip()
+        ie.add('summary', summary)
+        ie.add('dtstart', g['start_time'])
+        ie.add('dtend', g['end_time'])
         ie.add('dtstamp', datetime.utcnow())
+        if g['shift_type'].color:
+            ie.add('color', g['shift_type'].color)
+            ie.add('x-apple-calendar-color', g['shift_type'].color)
         if team.address:
             ie.add('location', team.address)
         cal.add_component(ie)
