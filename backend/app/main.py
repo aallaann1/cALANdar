@@ -29,8 +29,8 @@ async def lifespan(app: FastAPI):
             hashed_password=get_password_hash("1234"),
             is_admin=True,
             is_manager=False,
-            first_name="Admin",
-            last_name="System"
+            first_name="",
+            last_name=""
         )
         db.add(new_admin)
         db.commit()
@@ -77,6 +77,11 @@ def google_auth(token_in: GoogleToken, db: Session = Depends(get_db)):
         email = idinfo['email']
         first_name = idinfo.get('given_name')
         last_name = idinfo.get('family_name')
+        if not first_name and not last_name:
+            full_name = idinfo.get('name', '')
+            parts = full_name.split(' ', 1)
+            first_name = parts[0] if len(parts) > 0 else 'Utilisateur'
+            last_name = parts[1] if len(parts) > 1 else ''
         picture = idinfo.get('picture')
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid Google token")
