@@ -22,12 +22,22 @@ def _get_logo_data(team_logo: str):
         print(f"Error reading logo: {e}")
     return None, None
 
-def send_member_welcome_email(to_email: str, team_name: str, team_logo: str):
+def _get_base_url(request=None):
+    if request:
+        proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+        if host:
+            return f"{proto}://{host}"
+    return settings.FRONTEND_URL
+
+def send_member_welcome_email(to_email: str, team_name: str, team_logo: str, request=None):
     msg = EmailMessage()
     msg['Subject'] = f"Bienvenue dans l'équipe {team_name}"
     msg['From'] = f"{settings.SMTP_SENDER_NAME} <{settings.SMTP_SENDER_EMAIL}>"
     msg['To'] = to_email
     msg.set_content("Veuillez utiliser un client mail supportant le HTML.")
+    
+    frontend_url = _get_base_url(request)
     
     image_cid, logo_details = _get_logo_data(team_logo)
     logo_html = f'<div style="text-align: center; margin-bottom: 24px;"><img src="cid:{image_cid}" alt="Logo" style="max-height: 72px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"></div>' if image_cid else ''
@@ -48,7 +58,7 @@ def send_member_welcome_email(to_email: str, team_name: str, team_logo: str):
                 <h1 style="color: #0f172a; text-align: center; font-size: 22px; font-weight: 700; margin-bottom: 12px; line-height: 1.3;">Bienvenue dans l'équipe <span style="color: #2563eb;">{team_name}</span></h1>
                 <p style="font-size: 15px; color: #64748b; line-height: 1.6; text-align: center; margin-bottom: 32px;">Vous avez été invité(e) à rejoindre l'équipe sur cALANdar pour consulter votre planning partagé.</p>
                 <div style="text-align: center; margin-bottom: 32px;">
-                    <a href="{settings.FRONTEND_URL}" style="background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; display: inline-block; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">Accéder à mon planning</a>
+                    <a href="{frontend_url}" style="background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; display: inline-block; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">Accéder à mon planning</a>
                 </div>
                 <div style="border-top: 1px solid #e2e8f0; padding-top: 24px;">
                     <p style="font-size: 13px; color: #94a3b8; text-align: center; margin: 0;">Connectez-vous de façon sécurisée avec votre compte Google ({to_email}).</p>
@@ -65,12 +75,14 @@ def send_member_welcome_email(to_email: str, team_name: str, team_logo: str):
     
     _send_email(msg)
 
-def send_manager_welcome_email(to_email: str, team_name: str, team_logo: str):
+def send_manager_welcome_email(to_email: str, team_name: str, team_logo: str, request=None):
     msg = EmailMessage()
     msg['Subject'] = f"Vous êtes gestionnaire de l'équipe {team_name}"
     msg['From'] = f"{settings.SMTP_SENDER_NAME} <{settings.SMTP_SENDER_EMAIL}>"
     msg['To'] = to_email
     msg.set_content("Veuillez utiliser un client mail supportant le HTML.")
+    
+    frontend_url = _get_base_url(request)
     
     image_cid, logo_details = _get_logo_data(team_logo)
     logo_html = f'<div style="text-align: center; margin-bottom: 24px;"><img src="cid:{image_cid}" alt="Logo" style="max-height: 72px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"></div>' if image_cid else ''
@@ -91,7 +103,7 @@ def send_manager_welcome_email(to_email: str, team_name: str, team_logo: str):
                 <h1 style="color: #0f172a; text-align: center; font-size: 22px; font-weight: 700; margin-bottom: 12px; line-height: 1.3;">Nouveau rôle : <span style="color: #10b981;">Gestionnaire</span></h1>
                 <p style="font-size: 15px; color: #64748b; line-height: 1.6; text-align: center; margin-bottom: 32px;">Vous avez été désigné(e) comme gestionnaire de l'équipe <strong>{team_name}</strong>. Vous pouvez dès à présent créer des créneaux et gérer votre équipe.</p>
                 <div style="text-align: center; margin-bottom: 32px;">
-                    <a href="{settings.FRONTEND_URL}" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; display: inline-block; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">Accéder à la gestion</a>
+                    <a href="{frontend_url}" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; display: inline-block; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">Accéder à la gestion</a>
                 </div>
                 <div style="border-top: 1px solid #e2e8f0; padding-top: 24px;">
                     <p style="font-size: 13px; color: #94a3b8; text-align: center; margin: 0;">Connectez-vous de façon sécurisée avec votre compte Google ({to_email}).</p>

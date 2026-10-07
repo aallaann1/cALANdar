@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models import Team, User, ShiftType
@@ -23,7 +23,7 @@ def get_all_teams(db: Session = Depends(get_db), admin: User = Depends(get_curre
     return db.query(Team).all()
 
 @router.post("/{team_id}/add-manager")
-def add_manager(team_id: int, invite: InviteCreate, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+def add_manager(team_id: int, invite: InviteCreate, request: Request, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -37,7 +37,7 @@ def add_manager(team_id: int, invite: InviteCreate, db: Session = Depends(get_db
         user.team_id = team.id
         
     db.commit()
-    send_manager_welcome_email(invite.email, team.name, team.logo)
+    send_manager_welcome_email(invite.email, team.name, team.logo, request=request)
     return {"message": "Manager added"}
 
 @router.get("/{team_id}/managers")
@@ -111,7 +111,7 @@ def delete_team(team_id: int, db: Session = Depends(get_db), admin: User = Depen
     return {"message": "Team and all related data deleted"}
 
 @router.post("/add-member")
-def add_member(invite: InviteCreate, db: Session = Depends(get_db), manager: User = Depends(get_current_manager)):
+def add_member(invite: InviteCreate, request: Request, db: Session = Depends(get_db), manager: User = Depends(get_current_manager)):
     team = db.query(Team).filter(Team.id == manager.team_id).first()
     if not team:
         raise HTTPException(status_code=400, detail="You do not manage a team")
@@ -124,7 +124,7 @@ def add_member(invite: InviteCreate, db: Session = Depends(get_db), manager: Use
         user.team_id = team.id
         
     db.commit()
-    send_member_welcome_email(invite.email, team.name, team.logo)
+    send_member_welcome_email(invite.email, team.name, team.logo, request=request)
     return {"message": "Membre ajouté"}
 
 @router.get("/members")
