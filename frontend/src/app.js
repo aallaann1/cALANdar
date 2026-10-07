@@ -253,20 +253,35 @@ createApp({
             const calendarEl = document.getElementById('calendar');
             if (!calendarEl || calendar) return;
             
+            const isMobile = window.innerWidth < 640;
+            
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek',
-                headerToolbar: {
+                initialView: isMobile ? 'timeGridDay' : 'timeGridWeek',
+                headerToolbar: isMobile ? {
+                    left: 'prev,next',
+                    center: 'title',
+                    right: 'timeGridDay,timeGridWeek'
+                } : {
                     left: 'prev,next today',
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
+                dayHeaderFormat: isMobile 
+                    ? { weekday: 'short', day: 'numeric', month: 'numeric' }
+                    : { weekday: 'short', day: 'numeric', month: 'numeric', omitCommas: true },
+                titleFormat: isMobile
+                    ? { month: 'short', year: 'numeric', day: 'numeric' }
+                    : { month: 'long', year: 'numeric' },
                 buttonText: {
-                    today: "Aujourd'hui",
+                    today: "Auj.",
                     month: "Mois",
                     week: "Semaine",
                     day: "Jour"
                 },
                 locale: 'fr',
+                allDaySlot: false,
+                slotMinTime: '06:00:00',
+                slotMaxTime: '23:00:00',
                 nowIndicator: true,
                 events: [],
                 editable: user.value && user.value.is_manager,
