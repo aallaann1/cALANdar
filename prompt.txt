@@ -1,0 +1,17 @@
+salut on va créer une application avec un back et un front séparé et le tout qui tourne sur docker. 
+Tu vas faire ça en python. Attention au responsive car ça doit être utilisable sur téléphone. 
+L'application est une app de gestion des calandrier, il y a comme profil utilisateur (par défaut à tout le monde), 
+et gestionnaire et admin qui seront gérer en base deonnée avec une variable 0 ou 1 pour savoir 
+si on l'est où pas car cela permettra de voir des onglets supplémentaires et effectué des actions. 
+Cette application doit permettre de gérer pour le gestionnaire les plannings de son équipe. Il aura donc un onglet avec son équipe et ses collabotrateurs pour les gérer et un bouton inviter un collaborateur. 
+Ce bouton enverra un mail au nouveau collaborateur avec un lien à usage unique valable 24h et qui si quand on clique est expiré en renvoie un nouveau, en cliquant dessus ça me demande nom, prenom et créer un mot de passe et facultatif un photo de profil à upload. 
+Penses à ajouter sur le site un formulaire de login, deconnexion et oublie du mot de passe et attention pas de formulaire de créatipoion de compte car on peut avoir un compte que par inscirption.
+Le gestionnaire peut aller dans le planning et ajouter des heures, il a alors un formulaire où il choisit le type entre les types qu'il aura définit dans un menu type dans l'onglet 
+gestionnaire seuelement visible par les gestionnaire, puis choisis qui de son équipe il met etheure de début, heur de fin avec date. Les informations et types et tout ce qu'a le gestionnaire dans son onglet gestion seront propre à son équipe c'est là aussi 
+qu'il gère son équipe avec logo, nom etc...
+Il gère aussi ici ses collaborateurs dans un onglet avec un bouton pour inviter qui envoie un mail type : Bonjour Prenom.gestionnaire vous invite dans son équipe nom.équipe. avec un jolie thème que tu feras toi même.
+Pour l'interface graphique de l'app : pour es utilisateurs il y aura un onglet mon profil, mon planning, et s'abonner pour récupérer le ICAL. Dans le planning fait un truc jolie de visualisation de planning. POur les gestionnaire tu ajoutes en plus l'onglet gestion. ET pour les admin un onglet en plus admin où dedans je peut gérer tous les utilisateurs, toutes les équipes et absolument tout ce qu'il s'y passe.
+L'admin sera alanterrier11@gmail.com pour commencer initialise le en base de données avec un mot de passe genre 1234. Pense à encrypté sur le site tout ce qui est sensible genre mot de passe.
+
+Tu dois générer un lien ICAL ajoutable sur n'importe quel calandrier externe par n'importe qui, pour les utilisateurs un lien ICAL de seulement leur planning à eux et pour le getsionnaire lui il a un lien ICAL avec le planning de toute son équipe. 
+Ce lien ICAL doit en permanance etre à jour dès que le gestionnaire ajoute ou enlève des heures. 

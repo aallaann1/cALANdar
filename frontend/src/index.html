@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cALANdar - Gestion de Planning</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FullCalendar -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js'></script>
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        [v-cloak] { display: none; }
+        body { background-color: #f8fafc; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* FullCalendar Modern Overrides */
+        .fc { font-family: 'Inter', sans-serif !important; }
+        .fc-theme-standard td, .fc-theme-standard th, .fc-theme-standard .fc-scrollgrid { border-color: #e2e8f0 !important; }
+        .fc-header-toolbar { margin-bottom: 1.5em !important; }
+        .fc-toolbar-title { font-size: 1.25rem !important; font-weight: 600 !important; color: #1e293b; }
+        .fc-button-primary { background-color: #ffffff !important; color: #334155 !important; border: 1px solid #e2e8f0 !important; border-radius: 0.5rem !important; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; text-transform: capitalize; font-weight: 500 !important; transition: all 0.2s; }
+        .fc-button-primary:hover { background-color: #f8fafc !important; border-color: #cbd5e1 !important; }
+        .fc-button-active { background-color: #eff6ff !important; color: #2563eb !important; border-color: #bfdbfe !important; }
+        .fc-col-header-cell-cushion { color: #475569 !important; font-weight: 500 !important; padding: 0.5rem !important; }
+        .fc-daygrid-day-number { color: #64748b !important; font-weight: 500; font-size: 0.875rem; padding: 0.5rem !important; }
+        .fc-event { border: none !important; border-radius: 4px !important; padding: 2px 4px !important; font-size: 0.75rem !important; font-weight: 500 !important; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.1s; }
+        .fc-event:hover { transform: scale(1.02); z-index: 10; }
+        
+        /* UI Utilities */
+        .glass-nav { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(226, 232, 240, 0.8); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; overflow: hidden; }
+        .input-field { width: 100%; padding: 0.625rem 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background-color: #f8fafc; transition: all 0.2s; outline: none; }
+        .input-field:focus { background-color: #ffffff; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: white; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-weight: 500; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3); }
+        .btn-danger { background: #ef4444; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; transition: all 0.2s; }
+        .btn-danger:hover { background: #dc2626; }
+        
+        /* Fade transition for tabs */
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased">
+    <div id="app" v-cloak class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <nav v-if="user" class="glass-nav sticky top-0 z-50 transition-all duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center gap-3">
+                        <img v-if="user.profile_picture" :src="user.profile_picture" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
+                        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-600 tracking-tight">cALANdar</span>
+                    </div>
+                    
+                    <!-- Desktop Nav -->
+                    <div class="hidden md:flex space-x-1 bg-slate-100/80 p-1 rounded-xl">
+                        <button @click="currentTab = 'planning'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'planning', 'text-slate-600 hover:text-slate-900': currentTab !== 'planning'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Mon planning</button>
+                        <button @click="currentTab = 'profile'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'profile', 'text-slate-600 hover:text-slate-900': currentTab !== 'profile'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Profil</button>
+                        <button v-if="user.is_manager && user.team_id" @click="currentTab = 'gestion'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'gestion', 'text-slate-600 hover:text-slate-900': currentTab !== 'gestion'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Gestion</button>
+                        <button v-if="user.is_admin" @click="currentTab = 'admin'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'admin', 'text-slate-600 hover:text-slate-900': currentTab !== 'admin'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Admin</button>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <button @click="logout" class="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors hidden md:block">Déconnexion</button>
+                        <!-- Mobile menu button -->
+                        <div class="md:hidden flex items-center">
+                            <select v-model="currentTab" class="bg-slate-100 border-none rounded-lg text-sm font-medium focus:ring-0 mr-2 py-2 pl-3 pr-8">
+                                <option value="planning">Planning</option>
+                                <option value="profile">Profil</option>
+                                <option v-if="user.is_manager && user.team_id" value="gestion">Gestion</option>
+                                <option v-if="user.is_admin" value="admin">Admin</option>
+                            </select>
+                            <button @click="logout" class="p-2 text-slate-500 hover:text-red-500 rounded-lg bg-slate-100">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <!-- Login View -->
+            <div v-if="!user" class="min-h-[80vh] flex items-center justify-center">
+                <div class="card w-full max-w-md p-8 text-center relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-500 to-indigo-500"></div>
+                    <div class="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-6 transform rotate-3">
+                        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <h2 class="text-3xl font-extrabold mb-2 tracking-tight">Bienvenue</h2>
+                    <p class="text-slate-500 mb-8">Connectez-vous pour accéder à votre planning d'équipe.</p>
+                    
+                    <div class="flex justify-center mb-4">
+                        <div id="g_id_onload"
+                             data-client_id="96780292984-gn7a11q83e57mh98tnsffloit4jofqql.apps.googleusercontent.com"
+                             data-context="signin"
+                             data-ux_mode="popup"
+                             data-callback="handleGoogleLogin"
+                             data-auto_prompt="false">
+                        </div>
+                        <div class="g_id_signin"
+                             data-type="standard"
+                             data-shape="pill"
+                             data-theme="outline"
+                             data-text="continue_with"
+                             data-size="large"
+                             data-logo_alignment="left">
+                        </div>
+                    </div>
+                    
+                    <div v-if="loginError" class="mt-6 p-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium border border-red-100 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        {{ loginError }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Views -->
+            <div v-if="user" class="w-full">
+                    
+                    <!-- Global Warning -->
+                    <div v-if="!user.team_id && !user.is_manager && !user.is_admin" class="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm flex items-start gap-3">
+                        <svg class="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <div>
+                            <h3 class="text-amber-800 font-bold">Aucune équipe assignée</h3>
+                            <p class="text-amber-700 text-sm mt-1">Vous n'appartenez à aucune équipe. Veuillez demander à un gestionnaire de vous envoyer une invitation.</p>
+                        </div>
+                    </div>
+
+                    <!-- Planning Tab -->
+                    <div v-show="currentTab === 'planning'" class="space-y-6">
+                        <div class="card p-4 sm:p-6 lg:p-8">
+                            <div id="calendar" class="h-[650px] md:h-[750px] w-full"></div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Tab -->
+                    <div v-show="currentTab === 'profile'" class="max-w-3xl mx-auto space-y-6">
+                        <div class="card p-6 md:p-8">
+                            <div class="flex flex-col md:flex-row items-center gap-6">
+                                <div class="relative">
+                                    <img v-if="user.profile_picture" :src="user.profile_picture" class="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover">
+                                    <div v-else class="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center shadow-inner">
+                                        <span class="text-3xl text-slate-400 font-bold">{{ user.first_name?.[0] }}{{ user.last_name?.[0] }}</span>
+                                    </div>
+                                    <div class="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-2 border-white rounded-full"></div>
+                                </div>
+                                <div class="text-center md:text-left flex-grow">
+                                    <h2 class="text-3xl font-bold text-slate-800">{{ user.first_name }} {{ user.last_name }}</h2>
+                                    <p class="text-slate-500 font-medium">{{ user.email }}</p>
+                                    <div class="mt-3 flex flex-wrap gap-2 justify-center md:justify-start">
+                                        <span v-if="user.is_admin" class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold uppercase tracking-wide">Administrateur</span>
+                                        <span v-if="user.is_manager" class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-wide">Gestionnaire</span>
+                                        <span v-if="user.team_id" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wide">Membre d'équipe</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr class="my-8 border-slate-100">
+                            
+                            <div>
+                                <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                                    <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                                    Synchronisation Calendrier
+                                </h3>
+                                
+                                <div class="bg-slate-50 rounded-xl p-5 border border-slate-100 mb-4">
+                                    <label class="block text-sm font-semibold text-slate-700 mb-2">Mon planning personnel (Format iCal)</label>
+                                    <div class="flex gap-2 flex-col sm:flex-row">
+                                        <input :value="`${fullApiUrl}/ical/user/${user.id}.ics`" readonly class="input-field font-mono text-sm text-slate-600 bg-white" onclick="this.select()">
+                                        <a :href="`${fullApiUrl}/ical/user/${user.id}.ics`" target="_blank" class="bg-primary-100 text-primary-700 px-4 py-2 rounded-lg font-semibold hover:bg-primary-200 transition-colors flex items-center justify-center whitespace-nowrap">
+                                            Lien iCal
+                                        </a>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-2">Ajoutez ce lien dans Google Agenda ou Apple Calendar pour synchroniser automatiquement vos horaires.</p>
+                                </div>
+
+                                <div v-if="user.is_manager" class="bg-emerald-50 rounded-xl p-5 border border-emerald-100">
+                                    <label class="block text-sm font-semibold text-emerald-800 mb-2">Planning complet de l'équipe (Format iCal)</label>
+                                    <div class="flex gap-2 flex-col sm:flex-row">
+                                        <input :value="`${fullApiUrl}/ical/team/${user.team_id || (user.managed_team && user.managed_team.id)}.ics`" readonly class="input-field border-emerald-200 bg-white font-mono text-sm text-slate-600" onclick="this.select()">
+                                        <a :href="`${fullApiUrl}/ical/team/${user.team_id || (user.managed_team && user.managed_team.id)}.ics`" target="_blank" class="bg-emerald-200 text-emerald-800 px-4 py-2 rounded-lg font-semibold hover:bg-emerald-300 transition-colors flex items-center justify-center whitespace-nowrap">
+                                            Lien iCal
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gestion Tab (Manager) -->
+                    <div v-show="currentTab === 'gestion' && user.is_manager && user.team_id" class="space-y-6">
+                        
+                        <!-- Header & Settings -->
+                        <div class="card p-6 border-t-4 border-t-primary-500" v-if="myTeam">
+                            <div class="flex flex-col md:flex-row items-center gap-6">
+                                <div class="flex-shrink-0">
+                                    <img v-if="myTeam.logo" :src="myTeam.logo" alt="Logo" class="w-24 h-24 rounded-2xl shadow-sm object-cover bg-slate-50">
+                                    <div v-else class="w-24 h-24 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="flex-grow w-full">
+                                    <h3 class="text-xl font-bold mb-4">Paramètres de l'équipe</h3>
+                                    <form @submit.prevent="updateMyTeam" class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                        <div class="md:col-span-6">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Nom</label>
+                                            <input v-model="myTeam.name" type="text" required class="input-field">
+                                        </div>
+                                        <div class="md:col-span-6">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Changer le logo</label>
+                                            <input type="file" @change="handleMyTeamLogoUpload" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 transition cursor-pointer border border-slate-200 rounded-lg bg-slate-50">
+                                        </div>
+                                        <div class="md:col-span-10">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Adresse de l'équipe (Lieu des créneaux)</label>
+                                            <input v-model="myTeam.address" type="text" placeholder="123 rue de la Paix, Paris" class="input-field">
+                                        </div>
+                                        <div class="md:col-span-2 flex items-end">
+                                            <button type="submit" class="btn-primary w-full h-[42px] flex items-center justify-center">Sauver</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Add Schedule -->
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                                <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                Ajouter des horaires
+                            </h3>
+                            <form @submit.prevent="addEvent" class="grid grid-cols-1 md:grid-cols-12 gap-6 bg-slate-50 p-6 rounded-xl border border-slate-100">
+                                <div class="md:col-span-12 lg:col-span-4">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Membres concernés</label>
+                                    <p class="text-[10px] text-slate-400 mb-2 leading-tight">Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs membres</p>
+                                    <select v-model="eventForm.user_ids" multiple required class="w-full p-3 border border-slate-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none" size="4">
+                                        <option v-for="m in teamMembers" :value="m.id" class="py-1 px-2 rounded hover:bg-slate-100">{{ m.first_name }} {{ m.last_name }}</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Type de créneau</label>
+                                        <select v-model="eventForm.shift_type_id" required class="input-field bg-white">
+                                            <option value="" disabled selected>Sélectionnez un type</option>
+                                            <option v-for="st in shiftTypes" :value="st.id">{{ st.name }}</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Début</label>
+                                        <input v-model="eventForm.start_time" type="datetime-local" required class="input-field bg-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Fin</label>
+                                        <input v-model="eventForm.end_time" type="datetime-local" required class="input-field bg-white">
+                                    </div>
+                                    <div class="md:col-span-2 mt-2">
+                                        <button type="submit" class="btn-primary w-full text-lg shadow-lg">Ajouter au planning</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Management Grid -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            
+                            <!-- Members -->
+                            <div class="card flex flex-col h-full">
+                                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                    <h3 class="text-xl font-bold">Membres ({{teamMembers.length}})</h3>
+                                    <span class="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-bold">Équipe</span>
+                                </div>
+                                <div class="p-6 flex-grow">
+                                    <ul class="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
+                                        <li v-for="m in teamMembers" :key="m.id" class="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                                            <img v-if="m.profile_picture" :src="m.profile_picture" class="w-10 h-10 rounded-full object-cover shadow-sm border border-slate-100">
+                                            <div v-else class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                                {{ m.first_name?.[0] || '?' }}{{ m.last_name?.[0] || '' }}
+                                            </div>
+                                            <div class="flex-grow min-w-0">
+                                                <div class="font-bold text-sm truncate">{{ m.first_name }} {{ m.last_name }}</div>
+                                                <div class="text-xs text-slate-500 truncate">{{ m.email }}</div>
+                                            </div>
+                                            <button @click="removeMember(m.id)" class="text-slate-400 hover:bg-red-50 hover:text-red-600 p-2 rounded-lg transition-colors flex-shrink-0" title="Retirer de l'équipe">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="p-6 border-t border-slate-100 bg-slate-50">
+                                    <form @submit.prevent="inviteUser">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Ajouter un membre</label>
+                                        <div class="flex gap-2">
+                                            <input v-model="inviteEmail" type="email" placeholder="Email Google" required class="input-field bg-white">
+                                            <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white px-4 rounded-lg font-medium transition-colors whitespace-nowrap">Inviter</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            
+                            <!-- Shift Types -->
+                            <div class="card flex flex-col h-full">
+                                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                    <h3 class="text-xl font-bold">Types de créneaux</h3>
+                                    <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">Configuration</span>
+                                </div>
+                                <div class="p-6 flex-grow">
+                                    <div class="grid grid-cols-2 gap-3 mb-6 max-h-60 overflow-y-auto pr-2">
+                                        <div v-for="st in shiftTypes" :key="st.id" class="flex items-center gap-2 p-3 border border-slate-100 rounded-lg shadow-sm bg-white">
+                                            <div class="w-4 h-4 rounded-full flex-shrink-0 shadow-sm" :style="{backgroundColor: st.color}"></div>
+                                            <span class="text-sm font-medium truncate">{{ st.name }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-6 border-t border-slate-100 bg-slate-50">
+                                    <form @submit.prevent="addShiftType">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Nouveau type</label>
+                                        <div class="flex gap-2">
+                                            <input v-model="shiftTypeForm.name" type="text" placeholder="Nom" required class="input-field bg-white w-full">
+                                            <input v-model="shiftTypeForm.color" type="color" required class="h-10 w-14 rounded-lg cursor-pointer border-none p-0 bg-transparent flex-shrink-0 self-center">
+                                            <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white px-4 rounded-lg font-medium transition-colors">Créer</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Admin Tab -->
+                    <div v-show="currentTab === 'admin' && user.is_admin" class="space-y-6">
+                        
+                        <div class="card p-6 md:p-10 bg-gradient-to-r from-purple-800 to-indigo-900 text-white overflow-hidden relative">
+                            <div class="absolute top-0 right-0 opacity-10 transform translate-x-10 -translate-y-10">
+                                <svg class="w-64 h-64" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14l9-5-9-5-9 5 9 5z"></path><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path><path d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"></path></svg>
+                            </div>
+                            <div class="relative z-10">
+                                <h2 class="text-3xl font-extrabold mb-2">Espace Administration</h2>
+                                <p class="text-purple-200">Gérez les équipes et les accès système.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                            
+                            <!-- Create Team -->
+                            <div class="xl:col-span-1 card p-6 h-fit border-t-4 border-t-purple-500">
+                                <h3 class="text-xl font-bold mb-4">Créer une équipe</h3>
+                                <form @submit.prevent="createTeam" class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Nom de l'équipe</label>
+                                        <input v-model="newTeam.name" type="text" placeholder="Ex: Informatique" required class="input-field">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Logo officiel</label>
+                                        <input type="file" id="logoUpload" @change="handleFileUpload" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition cursor-pointer border border-slate-200 rounded-lg bg-slate-50">
+                                    </div>
+                                    <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-bold shadow-md transition-all">Générer l'équipe</button>
+                                </form>
+                            </div>
+                            
+                            <!-- Existing Teams -->
+                            <div class="xl:col-span-2 card p-6">
+                                <h3 class="text-xl font-bold mb-6">Équipes existantes ({{allTeams.length}})</h3>
+                                <div class="space-y-4">
+                                    <div v-for="team in allTeams" :key="team.id" class="border border-slate-200 rounded-xl p-4 sm:p-5 bg-white shadow-sm hover:shadow-md transition-shadow">
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                                            <div class="flex items-center gap-4">
+                                                <img v-if="team.logo" :src="team.logo" class="h-12 w-12 rounded-xl object-cover shadow-sm bg-slate-50" alt="logo">
+                                                <div v-else class="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-lg">
+                                                    {{ team.name[0] }}
+                                                </div>
+                                                <div>
+                                                    <h4 class="text-lg font-bold text-slate-800">{{ team.name }}</h4>
+                                                    <span class="text-xs font-mono text-slate-400">ID: #{{ team.id }}</span>
+                                                </div>
+                                            </div>
+                                            <button @click="deleteTeam(team)" class="text-red-500 hover:bg-red-50 hover:text-red-700 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors border border-red-100 self-start sm:self-auto">Supprimer l'équipe</button>
+                                        </div>
+                                        
+                                        <div class="bg-slate-50 rounded-lg p-4 border border-slate-100">
+                                            <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                                Gestionnaires assignés
+                                            </h5>
+                                            
+                                            <div v-if="team.managers && team.managers.length" class="space-y-2 mb-4">
+                                                <div v-for="mgr in team.managers" :key="mgr.id" class="flex flex-col sm:flex-row justify-between sm:items-center bg-white border border-slate-200 p-2 rounded-lg text-sm shadow-sm gap-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">{{ mgr.first_name?.[0] || '?' }}</div>
+                                                        <span class="font-medium text-slate-700 break-all">{{ mgr.email }}</span>
+                                                    </div>
+                                                    <button @click="removeManager(team.id, mgr.id)" class="text-slate-400 hover:text-red-600 p-1 transition-colors self-end sm:self-auto" title="Retirer">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div v-else class="text-sm text-slate-400 italic mb-4">Aucun gestionnaire assigné.</div>
+                                            
+                                            <form @submit.prevent="addManager(team.id)" class="flex gap-2">
+                                                <input v-model="managerForm[team.id]" type="email" placeholder="Email du gestionnaire" required class="flex-grow input-field text-sm py-2">
+                                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors whitespace-nowrap">Déléguer</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Creation Modal (Popup) -->
+                <div v-if="showEventModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                    <div class="card w-full max-w-lg p-6 bg-white rounded-xl shadow-2xl">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold flex items-center gap-2">
+                                <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                Nouveau Créneau
+                            </h3>
+                            <button @click="showEventModal = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        
+                        <form @submit.prevent="addEvent(); showEventModal = false;" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Membres concernés</label>
+                                <select v-model="eventForm.user_ids" multiple required class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 shadow-sm focus:ring-2 focus:ring-primary-500 outline-none" size="4">
+                                    <option v-for="m in teamMembers" :value="m.id" class="py-1 px-2 rounded hover:bg-slate-100">{{ m.first_name }} {{ m.last_name }}</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Type de créneau</label>
+                                <select v-model="eventForm.shift_type_id" required class="input-field bg-slate-50">
+                                    <option value="" disabled selected>Sélectionnez un type</option>
+                                    <option v-for="st in shiftTypes" :value="st.id">{{ st.name }}</option>
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Début</label>
+                                    <input v-model="eventForm.start_time" type="datetime-local" required class="input-field bg-slate-50">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Fin</label>
+                                    <input v-model="eventForm.end_time" type="datetime-local" required class="input-field bg-slate-50">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-primary w-full text-lg mt-4">Ajouter</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Event Popover -->
+                <div v-if="eventPopover.show" @click="eventPopover.show = false" class="fixed inset-0 z-[150]"></div>
+                <div v-if="eventPopover.show" :style="{ left: eventPopover.x + 'px', top: eventPopover.y + 'px' }" class="fixed z-[200] bg-white rounded-xl shadow-2xl border border-slate-100 p-2 flex gap-1 transform -translate-x-1/2 -translate-y-[120%] animate-fade-in-up">
+                    <button @click="editEvent" class="p-2 text-primary-600 hover:bg-primary-50 rounded-lg flex items-center gap-2 font-bold text-sm transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        Modifier
+                    </button>
+                    <div class="w-px bg-slate-200 my-1"></div>
+                    <button @click="deleteEvent" class="p-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 font-bold text-sm transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Supprimer
+                    </button>
+                </div>
+
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

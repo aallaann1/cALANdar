@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accepter l'invitation - cALANdar</title>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+    <div id="invite-app" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+            <h2 class="text-2xl font-bold mb-6">Rejoindre l'équipe</h2>
+            <div v-if="loading" class="text-gray-600">Traitement de l'invitation...</div>
+            <div v-else-if="success" class="text-green-600 font-bold mb-4">
+                {{ message }}
+                <div class="mt-4">
+                    <a href="/" class="text-blue-600 underline">Se connecter avec Google</a>
+                </div>
+            </div>
+            <div v-else class="text-red-600 font-bold mb-4">
+                {{ error }}
+                <div class="mt-4">
+                    <a href="/" class="text-blue-600 underline">Retour à l'accueil</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const loading = ref(true);
+                const success = ref(false);
+                const error = ref('');
+                const message = ref('');
+
+                onMounted(async () => {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const token = urlParams.get('token');
+                    if (!token) {
+                        error.value = "Token d'invitation manquant.";
+                        loading.value = false;
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch(`http://localhost:8000/api/users/accept-invite?token=${token}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            success.value = true;
+                            message.value = data.message || "Vous avez bien été ajouté à l'équipe.";
+                        } else {
+                            const data = await res.json();
+                            error.value = data.detail || 'Lien invalide ou expiré';
+                        }
+                    } catch (e) {
+                        error.value = "Erreur de connexion au serveur.";
+                    } finally {
+                        loading.value = false;
+                    }
+                });
+
+                return { loading, success, error, message };
+            }
+        }).mount('#invite-app');
+    </script>
+</body>
+</html>
