@@ -173,9 +173,12 @@
                 font-size: 0.72rem !important;
                 padding: 0.25rem 0 !important;
             }
+            /* 1 row = 1h on mobile; sized so ~12h (7h→19h) are visible at once */
             .fc-timegrid-slot {
-                height: 2.2rem !important;
+                height: max(1.85rem, calc((82vh - 200px) / 12.5)) !important;
             }
+            .fc-timegrid-slot-label-cushion { font-size: 0.68rem !important; }
+            .fc-event { font-size: 0.68rem !important; padding: 1px 2px !important; }
         }
         
         /* UI Utilities */
@@ -370,18 +373,8 @@
 
                     <!-- Planning Tab -->
                     <div v-show="currentTab === 'planning'" class="space-y-3">
-                        <div v-if="user && user.is_manager" class="flex items-center justify-between gap-3">
-                            <div class="text-xs text-slate-500 font-medium hidden sm:flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                <span>Les créneaux avec les mêmes horaires sont superposés côte à côte</span>
-                            </div>
-                            <button @click="openCreateEventModal()" class="btn-primary !py-2 !px-4 text-sm flex items-center gap-2 shadow-sm font-semibold ml-auto">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                <span>Nouveau créneau</span>
-                            </button>
-                        </div>
                         <div class="card p-2 sm:p-6 lg:p-8">
-                            <div id="calendar" class="min-h-[580px] h-[78vh] w-full"></div>
+                            <div id="calendar" class="min-h-[520px] h-[82vh] sm:h-[78vh] w-full"></div>
                         </div>
                     </div>
 
@@ -659,12 +652,13 @@
                 </div>
 
                 <!-- Event Creation Modal (Popup) -->
-                <div v-if="showEventModal && user && user.is_manager" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-                    <div class="card w-full max-w-lg p-6 bg-white rounded-xl shadow-2xl">
+                <teleport to="body">
+                <div v-if="showEventModal && user && user.is_manager" @click.self="showEventModal = false" class="fixed inset-0 z-[300] flex items-end sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:p-4">
+                    <div class="w-full max-w-lg p-6 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92dvh] overflow-y-auto">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-xl font-bold flex items-center gap-2">
                                 <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                Nouveau Créneau
+                                {{ eventForm.editingEventIds ? 'Modifier le créneau' : 'Nouveau créneau' }}
                             </h3>
                             <button @click="showEventModal = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -698,43 +692,41 @@
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn-primary w-full text-lg mt-4">Ajouter</button>
+                            <button type="submit" class="btn-primary w-full text-lg mt-4">{{ eventForm.editingEventIds ? 'Enregistrer' : 'Ajouter' }}</button>
                         </form>
                     </div>
                 </div>
                 
-                <!-- Event Popover -->
+                <!-- Event Popover (Modifier / Supprimer) -->
                 <div v-if="eventPopover.show" @click="eventPopover.show = false" class="fixed inset-0 z-[150]"></div>
                 <div v-if="eventPopover.show" :style="{ left: eventPopover.x + 'px', top: eventPopover.y + 'px' }" class="fixed z-[200] bg-white rounded-xl shadow-2xl border border-slate-100 p-2 flex gap-1 transform -translate-x-1/2 -translate-y-[120%] animate-fade-in-up">
-                    <button @click="addEventOnSameSlot" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg flex items-center gap-1.5 font-bold text-sm transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        + Créneau
-                    </button>
-                    <div class="w-px bg-slate-200 my-1"></div>
-                    <button @click="editEvent" class="p-2 text-primary-600 hover:bg-primary-50 rounded-lg flex items-center gap-1.5 font-bold text-sm transition">
+                    <button @click="editEvent" class="px-3 py-2.5 text-primary-600 hover:bg-primary-50 rounded-lg flex items-center gap-1.5 font-bold text-sm transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         Modifier
                     </button>
                     <div class="w-px bg-slate-200 my-1"></div>
-                    <button @click="deleteEvent" class="p-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1.5 font-bold text-sm transition">
+                    <button @click="deleteEvent" class="px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1.5 font-bold text-sm transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         Supprimer
                     </button>
                 </div>
 
-        </main>
+                <!-- Floating Action Button (+) for Managers on Planning -->
+                <button v-if="user && user.is_manager && currentTab === 'planning' && !showEventModal && !mobileMenuOpen" 
+                        type="button"
+                        @click.stop="openCreateEventModal()" 
+                        class="fixed bottom-6 right-6 z-[250] w-16 h-16 rounded-full bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-2xl shadow-primary-500/40 flex items-center justify-center hover:scale-105 active:scale-95 transition-all focus:outline-none ring-4 ring-white"
+                        style="margin-bottom: env(safe-area-inset-bottom);"
+                        title="Ajouter un créneau"
+                        aria-label="Ajouter un créneau">
+                    <svg class="w-8 h-8 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                </button>
+                </teleport>
 
-        <!-- Mobile Floating Action Button (+) for Managers on Planning -->
-        <button v-if="user && user.is_manager && currentTab === 'planning'" 
-                @click="openCreateEventModal()" 
-                class="fixed bottom-6 right-6 z-40 md:hidden w-14 h-14 rounded-full bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-2xl shadow-primary-500/40 flex items-center justify-center hover:scale-105 active:scale-95 transition-all focus:outline-none ring-4 ring-white"
-                title="Ajouter un créneau"
-                aria-label="Ajouter un créneau">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
-            </svg>
-        </button>
+        </main>
     </div>
-    <script src="app.js"></script>
+    <script src="app.js?v=20261008-2"></script>
 </body>
 </html>

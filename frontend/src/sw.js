@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calandar-v1';
+const CACHE_NAME = 'calandar-v2';
 
 // We just need a basic fetch handler to satisfy PWA installability requirements
 self.addEventListener('fetch', (event) => {

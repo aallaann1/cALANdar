@@ -256,15 +256,39 @@ createApp({
             
             const isManager = Boolean(user.value && user.value.is_manager);
             const isMobile = window.innerWidth < 768;
+            // Touch devices (phones/tablets): the empty grid must ONLY scroll, never create a slot
+            const isTouch = isMobile || window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
+            const canClickToCreate = isManager && !isTouch;
             
             if (calendar) {
                 calendar.setOption('editable', isManager);
-                calendar.setOption('selectable', isManager && !isMobile);
+                calendar.setOption('selectable', canClickToCreate);
                 calendar.render();
                 return;
             }
+
+            const gridCreationHandlers = isTouch ? {} : {
+                dateClick: (info) => {
+                    if (user.value && user.value.is_manager) {
+                        eventForm.value.editingEventIds = null;
+                        const start = info.dateStr.includes('T') ? info.dateStr.slice(0, 16) : `${info.dateStr}T09:00`;
+                        const startDate = new Date(start);
+                        const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+                        const pad = n => n < 10 ? '0' + n : n;
+                        const end = `${endDate.getFullYear()}-${pad(endDate.getMonth()+1)}-${pad(endDate.getDate())}T${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+                        openCreateEventModal(start, end);
+                    }
+                },
+                select: (info) => {
+                    if (user.value && user.value.is_manager) {
+                        openCreateEventModal(info.startStr.slice(0, 16), info.endStr.slice(0, 16));
+                        calendar.unselect();
+                    }
+                }
+            };
             
             calendar = new FullCalendar.Calendar(calendarEl, {
+                ...gridCreationHandlers,
                 initialView: 'timeGridThreeDay',
                 views: {
                     timeGridThreeDay: {
@@ -298,28 +322,19 @@ createApp({
                 allDaySlot: false,
                 slotMinTime: '06:00:00',
                 slotMaxTime: '23:00:00',
+                scrollTime: '07:00:00',
+                // Mobile: 1h rows so ~7h→19h fit on screen without scrolling
+                slotDuration: isMobile ? '01:00:00' : '00:30:00',
+                slotLabelInterval: '01:00',
+                snapDuration: '00:15:00',
                 slotEventOverlap: true,
                 eventOverlap: true,
                 nowIndicator: true,
                 events: [],
                 editable: isManager,
-                selectable: isManager && !isMobile,
-                eventLongPressDelay: 250,
-                dateClick: (info) => {
-                    const isMobileNow = window.innerWidth < 768;
-                    if (user.value && user.value.is_manager && !isMobileNow) {
-                        eventForm.value.editingEventIds = null;
-                        const start = info.dateStr.includes('T') ? info.dateStr.slice(0, 16) : `${info.dateStr}T09:00`;
-                        const startDate = new Date(start);
-                        const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
-                        const pad = n => n < 10 ? '0' + n : n;
-                        const end = `${endDate.getFullYear()}-${pad(endDate.getMonth()+1)}-${pad(endDate.getDate())}T${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
-                        
-                        eventForm.value.start_time = start;
-                        eventForm.value.end_time = end;
-                        showEventModal.value = true;
-                    }
-                },
+                selectable: canClickToCreate,
+                eventLongPressDelay: 400,
+                selectLongPressDelay: 100000,
                 eventDrop: async (info) => {
                     if (user.value && user.value.is_manager) {
                         try {
@@ -360,22 +375,15 @@ createApp({
                 },
                 eventClick: (info) => {
                     if (user.value && user.value.is_manager) {
+                        const margin = 120;
+                        const x = Math.min(Math.max(info.jsEvent.clientX, margin), window.innerWidth - margin);
+                        const y = Math.max(info.jsEvent.clientY, 90);
                         eventPopover.value = {
                             show: true,
-                            x: info.jsEvent.clientX,
-                            y: info.jsEvent.clientY,
+                            x,
+                            y,
                             eventInfo: info
                         };
-                    }
-                },
-                select: (info) => {
-                    const isMobileNow = window.innerWidth < 768;
-                    if (user.value && user.value.is_manager && !isMobileNow) {
-                        eventForm.value.editingEventIds = null;
-                        eventForm.value.start_time = info.startStr.slice(0, 16);
-                        eventForm.value.end_time = info.endStr.slice(0, 16);
-                        showEventModal.value = true;
-                        calendar.unselect();
                     }
                 }
             });
@@ -545,6 +553,7 @@ createApp({
         const openCreateEventModal = (startTime = null, endTime = null) => {
             if (!user.value || !user.value.is_manager) return;
             eventForm.value.editingEventIds = null;
+            eventForm.value.user_ids = [];
             if (startTime) {
                 eventForm.value.start_time = startTime;
                 eventForm.value.end_time = endTime || startTime;
