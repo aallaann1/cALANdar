@@ -298,6 +298,8 @@ createApp({
                 allDaySlot: false,
                 slotMinTime: '06:00:00',
                 slotMaxTime: '23:00:00',
+                slotEventOverlap: true,
+                eventOverlap: true,
                 nowIndicator: true,
                 events: [],
                 editable: isManager,
@@ -538,6 +540,33 @@ createApp({
             } catch(e) { console.error(e); }
         };
 
+        const openCreateEventModal = (startTime = null, endTime = null) => {
+            eventForm.value.editingEventIds = null;
+            if (startTime) {
+                eventForm.value.start_time = startTime;
+                eventForm.value.end_time = endTime || startTime;
+            } else {
+                const now = new Date();
+                const pad = n => n < 10 ? '0' + n : n;
+                const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+                eventForm.value.start_time = `${todayStr}T08:00`;
+                eventForm.value.end_time = `${todayStr}T12:00`;
+            }
+            if (!eventForm.value.shift_type_id && shiftTypes.value && shiftTypes.value.length > 0) {
+                eventForm.value.shift_type_id = shiftTypes.value[0].id;
+            }
+            if (eventPopover.value) eventPopover.value.show = false;
+            showEventModal.value = true;
+        };
+
+        const addEventOnSameSlot = () => {
+            const info = eventPopover.value.eventInfo;
+            if (!info) return;
+            const start = info.event.startStr.slice(0, 16);
+            const end = info.event.endStr ? info.event.endStr.slice(0, 16) : start;
+            openCreateEventModal(start, end);
+        };
+
         const editEvent = () => {
             const info = eventPopover.value.eventInfo;
             eventForm.value.editingEventIds = info.event.extendedProps.eventIds;
@@ -571,7 +600,7 @@ createApp({
             user, currentTab, loginForm, eventForm, shiftTypeForm, inviteEmail, teamMembers, shiftTypes, apiUrl: API_URL, fullApiUrl: FULL_API_URL, loginError,
             newTeam, managerForm, allTeams, myTeam, showEventModal, eventPopover, mobileMenuOpen,
             logout, inviteUser, addShiftType, addEvent, createTeam, handleFileUpload, addManager, removeManager, deleteTeam,
-            updateMyTeam, handleMyTeamLogoUpload, removeMember, editEvent, deleteEvent
+            updateMyTeam, handleMyTeamLogoUpload, removeMember, editEvent, deleteEvent, openCreateEventModal, addEventOnSameSlot
         };
     }
 }).mount('#app');
