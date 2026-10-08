@@ -257,6 +257,7 @@ createApp({
             
             if (calendar) {
                 calendar.setOption('editable', isManager);
+                calendar.setOption('selectable', isManager);
                 calendar.render();
                 return;
             }
