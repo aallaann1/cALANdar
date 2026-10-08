@@ -47,11 +47,78 @@
         /* FullCalendar Modern Overrides */
         .fc { font-family: 'Inter', sans-serif !important; }
         .fc-theme-standard td, .fc-theme-standard th, .fc-theme-standard .fc-scrollgrid { border-color: #e2e8f0 !important; }
-        .fc-header-toolbar { margin-bottom: 1rem !important; }
-        .fc-toolbar-title { font-size: 1.15rem !important; font-weight: 700 !important; color: #1e293b; }
-        .fc-button-primary { background-color: #ffffff !important; color: #334155 !important; border: 1px solid #e2e8f0 !important; border-radius: 0.5rem !important; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; text-transform: capitalize; font-weight: 500 !important; transition: all 0.2s; }
-        .fc-button-primary:hover { background-color: #f8fafc !important; border-color: #cbd5e1 !important; }
-        .fc-button-active { background-color: #eff6ff !important; color: #2563eb !important; border-color: #bfdbfe !important; font-weight: 600 !important; }
+        .fc-header-toolbar { margin-bottom: 1.25rem !important; }
+        .fc-toolbar-title { font-size: 1.2rem !important; font-weight: 700 !important; color: #1e293b; letter-spacing: -0.02em; }
+        
+        /* Modern Segmented / Pill Buttons */
+        .fc-button-group {
+            display: inline-flex !important;
+            background-color: #f1f5f9 !important;
+            padding: 3px !important;
+            border-radius: 0.75rem !important;
+            gap: 2px !important;
+            box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+        }
+        .fc-button-group > .fc-button {
+            border: none !important;
+            background-color: transparent !important;
+            color: #64748b !important;
+            border-radius: 0.6rem !important;
+            font-weight: 600 !important;
+            font-size: 0.8125rem !important;
+            padding: 0.45rem 0.75rem !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            transition: all 0.15s ease !important;
+        }
+        .fc-button-group > .fc-button:hover {
+            color: #1e293b !important;
+            background-color: rgba(255, 255, 255, 0.5) !important;
+        }
+        .fc-button-group > .fc-button.fc-button-active {
+            background-color: #ffffff !important;
+            color: #2563eb !important;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+        }
+
+        /* Specific standalone today / navigation buttons */
+        .fc-today-button {
+            background-color: #ffffff !important;
+            color: #2563eb !important;
+            border: 1px solid #bfdbfe !important;
+            border-radius: 0.65rem !important;
+            font-weight: 700 !important;
+            font-size: 0.825rem !important;
+            padding: 0.45rem 0.95rem !important;
+            box-shadow: 0 1px 2px 0 rgba(37, 99, 235, 0.08) !important;
+            transition: all 0.15s ease !important;
+        }
+        .fc-today-button:hover {
+            background-color: #eff6ff !important;
+            border-color: #93c5fd !important;
+        }
+        .fc-today-button:disabled {
+            background-color: #f8fafc !important;
+            color: #94a3b8 !important;
+            border-color: #e2e8f0 !important;
+            opacity: 0.7 !important;
+        }
+
+        .fc-prev-button, .fc-next-button {
+            background-color: #ffffff !important;
+            color: #475569 !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 0.65rem !important;
+            padding: 0.45rem 0.7rem !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+            transition: all 0.15s ease !important;
+        }
+        .fc-prev-button:hover, .fc-next-button:hover {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+
         .fc-col-header-cell-cushion { color: #475569 !important; font-weight: 600 !important; padding: 0.4rem 0.2rem !important; font-size: 0.8rem; text-decoration: none !important; }
         .fc-daygrid-day-number { color: #64748b !important; font-weight: 500; font-size: 0.8rem; padding: 0.25rem !important; text-decoration: none !important; }
         .fc-timegrid-slot-label-cushion { font-size: 0.75rem !important; color: #64748b !important; padding: 0 4px !important; }
@@ -64,25 +131,39 @@
             .fc .fc-toolbar {
                 display: flex;
                 flex-direction: column;
-                gap: 0.75rem;
-                align-items: stretch;
+                gap: 0.85rem;
+                align-items: center;
             }
             .fc .fc-toolbar-title {
                 text-align: center;
-                font-size: 1rem !important;
+                font-size: 1.05rem !important;
                 order: -1;
+                margin-bottom: 0.15rem;
             }
             .fc .fc-toolbar-chunk {
                 display: flex;
+                align-items: center;
                 justify-content: center;
-                gap: 0.25rem;
+                gap: 0.5rem;
+                width: 100%;
             }
-            .fc-header-toolbar .fc-button {
-                padding: 0.35rem 0.55rem !important;
-                font-size: 0.75rem !important;
+            .fc-button-group {
+                width: 100%;
+                justify-content: space-between;
+                padding: 4px !important;
+            }
+            .fc-button-group > .fc-button {
+                flex: 1 1 auto;
+                padding: 0.5rem 0.35rem !important;
+                font-size: 0.775rem !important;
+                text-align: center;
+            }
+            .fc-today-button {
+                font-size: 0.8rem !important;
+                padding: 0.45rem 1rem !important;
             }
             .fc-col-header-cell-cushion {
-                font-size: 0.7rem !important;
+                font-size: 0.72rem !important;
                 padding: 0.25rem 0 !important;
             }
             .fc-timegrid-slot {

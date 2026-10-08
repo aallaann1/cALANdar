@@ -290,9 +290,9 @@ createApp({
                     ? { month: 'short', year: 'numeric', day: 'numeric' }
                     : { month: 'long', year: 'numeric' },
                 buttonText: {
-                    today: "Auj.",
+                    today: "Aujourd'hui",
                     month: "Mois",
-                    week: "Sem.",
+                    week: "Semaine",
                     day: "Jour"
                 },
                 locale: 'fr',
