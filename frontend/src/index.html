@@ -229,7 +229,7 @@
                 <div class="flex justify-between items-center h-16">
                     <div class="flex items-center gap-3">
                         <img v-if="user.profile_picture" :src="user.profile_picture" @error="user.profile_picture = null" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
-                        <img src="/assets/logo.svg" alt="cALANdar Logo" class="h-8 cursor-pointer" @click="currentTab = 'planning'; mobileMenuOpen = false">
+                        <img src="/assets/logo-horizontal.svg" alt="cALANdar Logo" class="h-9 cursor-pointer drop-shadow-sm" @click="currentTab = 'planning'; mobileMenuOpen = false">
                     </div>
                     
                     <!-- Desktop Nav -->
@@ -727,6 +727,6 @@
 
         </main>
     </div>
-    <script src="app.js?v=20261008-3"></script>
+    <script src="app.js?v=20261008-4"></script>
 </body>
 </html>

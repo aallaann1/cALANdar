@@ -319,6 +319,7 @@ createApp({
                     day: "Jour"
                 },
                 locale: 'fr',
+                firstDay: 1, // Start week on Monday
                 allDaySlot: false,
                 slotMinTime: '06:00:00',
                 slotMaxTime: '23:00:00',

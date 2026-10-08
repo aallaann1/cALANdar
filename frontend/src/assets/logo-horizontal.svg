@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100" width="350" height="100">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#4F46E5" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  
+  <!-- Icon (Scaled down version of the original logo) -->
+  <g transform="translate(10, 10) scale(0.15625)">
+    <!-- Background with rounded corners -->
+    <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#bg)" filter="url(#shadow)"/>
+    
+    <!-- Calendar Top Bar -->
+    <path d="M 32 160 L 480 160" stroke="#FFFFFF" stroke-width="16" stroke-dasharray="24 48" opacity="0.3"/>
+    
+    <!-- Calendar Binders -->
+    <rect x="140" y="0" width="32" height="80" rx="16" fill="#F8FAFC" filter="url(#shadow)"/>
+    <rect x="340" y="0" width="32" height="80" rx="16" fill="#F8FAFC" filter="url(#shadow)"/>
+    
+    <!-- Inner design - 'A' overlapping with calendar grid -->
+    <path d="M 256 190 L 330 330 L 182 330 Z" fill="#FFFFFF" opacity="0.95"/>
+    <path d="M 256 140 L 370 350 L 142 350 Z" fill="none" stroke="#FFFFFF" stroke-width="32" stroke-linejoin="round" opacity="0.6"/>
+  </g>
+
+  <!-- Text -->
+  <text x="105" y="65" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" fill="url(#textGrad)" letter-spacing="0.5">cALANdar</text>
+</svg>
