@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:8080"
     GOOGLE_CLIENT_ID: str
     ADMIN_EMAIL: str = "alanterrier11@gmail.com"
+    UPLOAD_DIR: str = "uploads"
 
     class Config:
         env_file = ".env"

@@ -11,7 +11,10 @@ def _get_logo_data(team_logo: str):
         return None, None
     try:
         filename = unquote(team_logo.split('/')[-1])
-        filepath = os.path.join("uploads", filename)
+        upload_dir = os.path.abspath(settings.UPLOAD_DIR)
+        filepath = os.path.join(upload_dir, filename)
+        if not os.path.exists(filepath):
+            filepath = os.path.join("uploads", filename)
         if os.path.exists(filepath):
             image_cid = make_msgid()[1:-1]
             with open(filepath, 'rb') as f:

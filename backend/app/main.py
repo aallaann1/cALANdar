@@ -6,9 +6,12 @@ from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 import os
 import shutil
+import uuid
+import re
 
 from app.core.database import engine, Base, get_db
 from app.core.config import settings
+from app.core.migrations import sync_database_schema
 from app.models import User
 from app.core.security import get_password_hash, verify_password, create_access_token
 
@@ -16,10 +19,11 @@ from app.routers import users, teams, events, ical
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables
-    Base.metadata.create_all(bind=engine)
+    # Non-destructive database schema synchronization:
+    # creates new tables and adds missing columns without touching existing data
+    sync_database_schema(engine, Base)
     
-    # Initialize admin user
+    # Initialize admin user if missing
     db = next(get_db())
     admin_email = settings.ADMIN_EMAIL
     admin_user = db.query(User).filter(User.email == admin_email).first()
@@ -39,15 +43,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
-os.makedirs("uploads", exist_ok=True)
-app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
+# Persistent uploads directory
+UPLOAD_DIR = os.path.abspath(settings.UPLOAD_DIR)
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/api/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...)):
-    file_location = f"uploads/{file.filename}"
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else ".png"
+    clean_base = re.sub(r'[^a-zA-Z0-9_\-]', '', os.path.splitext(file.filename)[0]) if file.filename else "upload"
+    unique_filename = f"{uuid.uuid4().hex[:10]}_{clean_base[:25]}{ext}"
+    file_location = os.path.join(UPLOAD_DIR, unique_filename)
     with open(file_location, "wb+") as file_object:
         shutil.copyfileobj(file.file, file_object)
-    return {"url": f"/api/uploads/{file.filename}"}
+    return {"url": f"/api/uploads/{unique_filename}"}
 
 # CORS
 app.add_middleware(

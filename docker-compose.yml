@@ -3,6 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -14,14 +15,17 @@ services:
 
   backend:
     build: ./backend
+    restart: unless-stopped
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
+      - uploads_data:/app/uploads
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:password@db/calandar
       - FRONTEND_URL=http://localhost:8080
+      - UPLOAD_DIR=/app/uploads
     env_file:
       - .env
     depends_on:
@@ -29,6 +33,7 @@ services:
 
   frontend:
     build: ./frontend
+    restart: unless-stopped
     ports:
       - "8080:80"
     volumes:
@@ -36,9 +41,11 @@ services:
 
   mailhog:
     image: mailhog/mailhog
+    restart: unless-stopped
     ports:
       - "1025:1025" # SMTP server
       - "8025:8025" # Web UI
 
 volumes:
   postgres_data:
+  uploads_data:

@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 postgres_data/
+uploads_data/
+backend/uploads/*
+!backend/uploads/.gitkeep
+
