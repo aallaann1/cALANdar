@@ -274,11 +274,11 @@ createApp({
                     }
                 },
                 headerToolbar: isMobile ? {
-                    left: 'prev,next',
+                    left: 'prev,today,next',
                     center: 'title',
                     right: 'timeGridDay,timeGridThreeDay,timeGridWeek,dayGridMonth'
                 } : {
-                    left: 'prev,next today',
+                    left: 'prev,today,next',
                     center: 'title',
                     right: 'timeGridThreeDay,timeGridWeek,dayGridMonth'
                 },
