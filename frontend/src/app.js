@@ -255,15 +255,14 @@ createApp({
             if (!calendarEl) return;
             
             const isManager = Boolean(user.value && user.value.is_manager);
+            const isMobile = window.innerWidth < 768;
             
             if (calendar) {
                 calendar.setOption('editable', isManager);
-                calendar.setOption('selectable', isManager);
+                calendar.setOption('selectable', isManager && !isMobile);
                 calendar.render();
                 return;
             }
-            
-            const isMobile = window.innerWidth < 640;
             
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'timeGridThreeDay',
@@ -302,10 +301,8 @@ createApp({
                 nowIndicator: true,
                 events: [],
                 editable: isManager,
-                selectable: isManager,
-                selectLongPressDelay: 0,
-                eventLongPressDelay: 150,
-                longPressDelay: 150,
+                selectable: isManager && !isMobile,
+                eventLongPressDelay: 250,
                 dateClick: (info) => {
                     if (user.value && user.value.is_manager) {
                         eventForm.value.editingEventIds = null;
@@ -369,7 +366,7 @@ createApp({
                     }
                 },
                 select: (info) => {
-                    if (user.value && user.value.is_manager) {
+                    if (user.value && user.value.is_manager && !isMobile) {
                         eventForm.value.editingEventIds = null;
                         eventForm.value.start_time = info.startStr.slice(0, 16);
                         eventForm.value.end_time = info.endStr.slice(0, 16);
@@ -404,8 +401,8 @@ createApp({
                     const deltaY = touchEndY - touchStartY;
                     const duration = Date.now() - touchStartTime;
 
-                    // Detect horizontal swipe: distance > 45px, predominantly horizontal, and fast enough
-                    if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3 && duration < 600) {
+                    // Detect horizontal swipe: distance > 50px, predominantly horizontal, and fast enough
+                    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && duration < 600) {
                         const viewEl = calendarEl.querySelector('.fc-view-harness');
                         if (deltaX < 0) {
                             // Swiped left -> Next
