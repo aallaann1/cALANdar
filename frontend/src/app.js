@@ -306,7 +306,8 @@ createApp({
                 selectable: isManager && !isMobile,
                 eventLongPressDelay: 250,
                 dateClick: (info) => {
-                    if (user.value && user.value.is_manager) {
+                    const isMobileNow = window.innerWidth < 768;
+                    if (user.value && user.value.is_manager && !isMobileNow) {
                         eventForm.value.editingEventIds = null;
                         const start = info.dateStr.includes('T') ? info.dateStr.slice(0, 16) : `${info.dateStr}T09:00`;
                         const startDate = new Date(start);
@@ -368,7 +369,8 @@ createApp({
                     }
                 },
                 select: (info) => {
-                    if (user.value && user.value.is_manager && !isMobile) {
+                    const isMobileNow = window.innerWidth < 768;
+                    if (user.value && user.value.is_manager && !isMobileNow) {
                         eventForm.value.editingEventIds = null;
                         eventForm.value.start_time = info.startStr.slice(0, 16);
                         eventForm.value.end_time = info.endStr.slice(0, 16);

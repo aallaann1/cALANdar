@@ -707,6 +707,17 @@
                 </div>
 
         </main>
+
+        <!-- Mobile Floating Action Button (+) for Managers on Planning -->
+        <button v-if="user && user.is_manager && currentTab === 'planning'" 
+                @click="openCreateEventModal()" 
+                class="fixed bottom-6 right-6 z-40 md:hidden w-14 h-14 rounded-full bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-2xl shadow-primary-500/40 flex items-center justify-center hover:scale-105 active:scale-95 transition-all focus:outline-none ring-4 ring-white"
+                title="Ajouter un créneau"
+                aria-label="Ajouter un créneau">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+            </svg>
+        </button>
     </div>
     <script src="app.js"></script>
 </body>
