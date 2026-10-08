@@ -56,7 +56,7 @@ def send_member_welcome_email(to_email: str, team_name: str, team_logo: str, req
             <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); border: 1px solid #f1f5f9;">
                 {logo_html}
                 <div style="text-align: center; margin-bottom: 24px;">
-                    <span style="font-size: 24px; font-weight: 700; color: #1e293b; letter-spacing: -0.5px;">cALANdar</span>
+                    <img src="{frontend_url}/assets/logo.svg" alt="cALANdar Logo" style="height: 48px; margin: 0 auto; display: block; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" />
                 </div>
                 <h1 style="color: #0f172a; text-align: center; font-size: 22px; font-weight: 700; margin-bottom: 12px; line-height: 1.3;">Bienvenue dans l'équipe <span style="color: #2563eb;">{team_name}</span></h1>
                 <p style="font-size: 15px; color: #64748b; line-height: 1.6; text-align: center; margin-bottom: 32px;">Vous avez été invité(e) à rejoindre l'équipe sur cALANdar pour consulter votre planning partagé.</p>
@@ -101,7 +101,7 @@ def send_manager_welcome_email(to_email: str, team_name: str, team_logo: str, re
             <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); border: 1px solid #f1f5f9;">
                 {logo_html}
                 <div style="text-align: center; margin-bottom: 24px;">
-                    <span style="font-size: 24px; font-weight: 700; color: #1e293b; letter-spacing: -0.5px;">cALANdar</span>
+                    <img src="{frontend_url}/assets/logo.svg" alt="cALANdar Logo" style="height: 48px; margin: 0 auto; display: block; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" />
                 </div>
                 <h1 style="color: #0f172a; text-align: center; font-size: 22px; font-weight: 700; margin-bottom: 12px; line-height: 1.3;">Nouveau rôle : <span style="color: #10b981;">Gestionnaire</span></h1>
                 <p style="font-size: 15px; color: #64748b; line-height: 1.6; text-align: center; margin-bottom: 32px;">Vous avez été désigné(e) comme gestionnaire de l'équipe <strong>{team_name}</strong>. Vous pouvez dès à présent créer des créneaux et gérer votre équipe.</p>
