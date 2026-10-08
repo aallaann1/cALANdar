@@ -264,11 +264,18 @@ createApp({
             const isMobile = window.innerWidth < 640;
             
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: isMobile ? 'timeGridDay' : 'timeGridWeek',
+                initialView: isMobile ? 'timeGridThreeDay' : 'timeGridWeek',
+                views: {
+                    timeGridThreeDay: {
+                        type: 'timeGrid',
+                        duration: { days: 3 },
+                        buttonText: '3 jours'
+                    }
+                },
                 headerToolbar: isMobile ? {
                     left: 'prev,next',
                     center: 'title',
-                    right: 'timeGridDay,timeGridWeek'
+                    right: 'timeGridDay,timeGridThreeDay,timeGridWeek'
                 } : {
                     left: 'prev,next today',
                     center: 'title',
@@ -283,7 +290,7 @@ createApp({
                 buttonText: {
                     today: "Auj.",
                     month: "Mois",
-                    week: "Semaine",
+                    week: "Sem.",
                     day: "Jour"
                 },
                 locale: 'fr',
@@ -371,6 +378,42 @@ createApp({
             });
             calendar.render();
             fetchEvents();
+
+            // Swipe navigation for mobile
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchStartTime = 0;
+            let isTouchingEvent = false;
+
+            calendarEl.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                    touchStartTime = Date.now();
+                    isTouchingEvent = Boolean(e.target.closest('.fc-event'));
+                }
+            }, { passive: true });
+
+            calendarEl.addEventListener('touchend', (e) => {
+                if (!isTouchingEvent && e.changedTouches.length === 1) {
+                    const touchEndX = e.changedTouches[0].clientX;
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const deltaX = touchEndX - touchStartX;
+                    const deltaY = touchEndY - touchStartY;
+                    const duration = Date.now() - touchStartTime;
+
+                    // Detect horizontal swipe: distance > 50px, predominantly horizontal, and fast enough
+                    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && duration < 500) {
+                        if (deltaX < 0) {
+                            // Swiped left -> Next
+                            calendar.next();
+                        } else {
+                            // Swiped right -> Previous
+                            calendar.prev();
+                        }
+                    }
+                }
+            }, { passive: true });
         };
 
         const fetchTeams = async () => {
