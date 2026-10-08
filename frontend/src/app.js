@@ -265,7 +265,7 @@ createApp({
             const isMobile = window.innerWidth < 640;
             
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: isMobile ? 'timeGridThreeDay' : 'timeGridWeek',
+                initialView: 'timeGridThreeDay',
                 views: {
                     timeGridThreeDay: {
                         type: 'timeGrid',
@@ -276,11 +276,11 @@ createApp({
                 headerToolbar: isMobile ? {
                     left: 'prev,next',
                     center: 'title',
-                    right: 'timeGridDay,timeGridThreeDay,timeGridWeek'
+                    right: 'timeGridDay,timeGridThreeDay,timeGridWeek,dayGridMonth'
                 } : {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    right: 'timeGridThreeDay,timeGridWeek,dayGridMonth'
                 },
                 dayHeaderFormat: isMobile 
                     ? { weekday: 'short', day: 'numeric', month: 'numeric' }
@@ -403,14 +403,25 @@ createApp({
                     const deltaY = touchEndY - touchStartY;
                     const duration = Date.now() - touchStartTime;
 
-                    // Detect horizontal swipe: distance > 50px, predominantly horizontal, and fast enough
-                    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && duration < 500) {
+                    // Detect horizontal swipe: distance > 45px, predominantly horizontal, and fast enough
+                    if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3 && duration < 600) {
+                        const viewEl = calendarEl.querySelector('.fc-view-harness');
                         if (deltaX < 0) {
                             // Swiped left -> Next
                             calendar.next();
+                            if (viewEl) {
+                                viewEl.classList.remove('anim-slide-left', 'anim-slide-right');
+                                void viewEl.offsetWidth; // force reflow
+                                viewEl.classList.add('anim-slide-left');
+                            }
                         } else {
                             // Swiped right -> Previous
                             calendar.prev();
+                            if (viewEl) {
+                                viewEl.classList.remove('anim-slide-left', 'anim-slide-right');
+                                void viewEl.offsetWidth; // force reflow
+                                viewEl.classList.add('anim-slide-right');
+                            }
                         }
                     }
                 }
