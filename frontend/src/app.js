@@ -28,6 +28,7 @@ createApp({
         const eventPopover = ref({ show: false, x: 0, y: 0, eventInfo: null });
         const allTeams = ref([]);
         const myTeam = ref(null);
+        const mobileMenuOpen = ref(false);
         const newTeam = ref({ name: '', logoFile: null });
         const managerForm = ref({});
         let calendar = null;
@@ -571,7 +572,7 @@ createApp({
 
         return {
             user, currentTab, loginForm, eventForm, shiftTypeForm, inviteEmail, teamMembers, shiftTypes, apiUrl: API_URL, fullApiUrl: FULL_API_URL, loginError,
-            newTeam, managerForm, allTeams, myTeam, showEventModal, eventPopover,
+            newTeam, managerForm, allTeams, myTeam, showEventModal, eventPopover, mobileMenuOpen,
             logout, inviteUser, addShiftType, addEvent, createTeam, handleFileUpload, addManager, removeManager, deleteTeam,
             updateMyTeam, handleMyTeamLogoUpload, removeMember, editEvent, deleteEvent
         };
