@@ -304,7 +304,7 @@ createApp({
                 } : {
                     left: 'prev,today,next',
                     center: 'title',
-                    right: 'timeGridThreeDay,timeGridWeek,dayGridMonth'
+                    right: 'timeGridDay,timeGridThreeDay,timeGridWeek,dayGridMonth'
                 },
                 dayHeaderFormat: isMobile 
                     ? { weekday: 'short', day: 'numeric', month: 'numeric' }
