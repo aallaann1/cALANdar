@@ -541,6 +541,7 @@ createApp({
         };
 
         const openCreateEventModal = (startTime = null, endTime = null) => {
+            if (!user.value || !user.value.is_manager) return;
             eventForm.value.editingEventIds = null;
             if (startTime) {
                 eventForm.value.start_time = startTime;
@@ -560,6 +561,7 @@ createApp({
         };
 
         const addEventOnSameSlot = () => {
+            if (!user.value || !user.value.is_manager) return;
             const info = eventPopover.value.eventInfo;
             if (!info) return;
             const start = info.event.startStr.slice(0, 16);
@@ -568,6 +570,7 @@ createApp({
         };
 
         const editEvent = () => {
+            if (!user.value || !user.value.is_manager) return;
             const info = eventPopover.value.eventInfo;
             eventForm.value.editingEventIds = info.event.extendedProps.eventIds;
             eventForm.value.shift_type_id = info.event.extendedProps.shiftTypeId;
@@ -579,6 +582,7 @@ createApp({
         };
 
         const deleteEvent = async () => {
+            if (!user.value || !user.value.is_manager) return;
             const info = eventPopover.value.eventInfo;
             if (confirm(`Voulez-vous supprimer ce créneau "${info.event.title}" ?`)) {
                 try {
