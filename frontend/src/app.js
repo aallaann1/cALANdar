@@ -322,8 +322,6 @@ createApp({
                 locale: 'fr',
                 firstDay: 1, // Start week on Monday
                 allDaySlot: false,
-                slotMinTime: '06:00:00',
-                slotMaxTime: '23:00:00',
                 scrollTime: '07:00:00',
                 // Mobile: 1h rows so ~7h→19h fit on screen without scrolling
                 slotDuration: isMobile ? '01:00:00' : '00:30:00',
