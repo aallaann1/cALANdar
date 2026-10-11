@@ -14,6 +14,7 @@ class User(Base):
     profile_picture = Column(String, nullable=True)
     is_manager = Column(Boolean, default=False)
     is_admin = Column(Boolean, default=False)
+    discord_role = Column(Integer, default=0)
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
 
     team = relationship("Team", back_populates="members", foreign_keys=[team_id])

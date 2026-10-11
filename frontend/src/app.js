@@ -1,4 +1,4 @@
-const { createApp, ref, onMounted, watch } = Vue;
+const { createApp, ref, onMounted, watch, computed } = Vue;
 
 const API_URL = '/api';
 const FULL_API_URL = window.location.origin + '/api';
@@ -28,6 +28,44 @@ createApp({
         const eventPopover = ref({ show: false, x: 0, y: 0, eventInfo: null });
         const allTeams = ref([]);
         const myTeam = ref(null);
+        
+        // Discord states
+        const discordTab = ref('gestion');
+        const discordStats = ref({});
+        const discordPanels = ref([]);
+        const discordTickets = ref([]);
+        const discordChannels = ref([]);
+        const discordSearch = ref('');
+        const discordDateFilter = ref('');
+        const discordSortDate = ref('desc');
+        const showDiscordPanelModal = ref(false);
+        const showDiscordPreviewModal = ref(false);
+        const discordPanelForm = ref({ 
+            id: null, name: '', 
+            embed_title: '', embed_description: '', embed_color: '#3B82F6',
+            button_text: '', button_emoji: '', button_color: 'primary',
+            active_category_id: '', archive_category_id: '', ping_role_id: '', 
+            ping_creator: true, max_tickets_per_user: 1,
+            intro_message: '', inactivity_days: 3,
+            close_button_text: 'Fermer le ticket',
+            close_button_color: 'danger',
+            close_button_emoji: '🔒',
+            reopen_button_text: 'Ré-ouvrir',
+            reopen_button_color: 'success',
+            reopen_button_emoji: '🔓',
+            delete_button_text: 'Supprimer',
+            delete_button_color: 'danger',
+            delete_button_emoji: '🗑️'
+        });
+        const showDiscordFieldsModal = ref(false);
+        const discordFields = ref([]);
+        const currentFieldPanelId = ref(null);
+        const discordFieldForm = ref({ id: null, label: '', is_paragraph: false, required: true, order: 0 });
+        const showDiscordDeployModal = ref(false);
+        const discordDeployForm = ref({ panel_id: null, channel_id: '' });
+        
+        const showDiscordTicketArchive = ref(false);
+        const discordTicketArchiveHtml = ref('');
         const mobileMenuOpen = ref(false);
         const newTeam = ref({ name: '', logoFile: null });
         const managerForm = ref({});
@@ -74,6 +112,7 @@ createApp({
                     if (user.value.is_manager) fetchManagerData();
                     if (user.value.is_admin) fetchTeams();
                     if (currentTab.value === 'planning') setTimeout(initCalendar, 100);
+                    if (currentTab.value === 'discord') handleDiscordTab('discord');
                 } else {
                     logout();
                 }
@@ -610,12 +649,322 @@ createApp({
         onMounted(() => {
             fetchUser();
         });
+        // Discord Methods
+        const loadDiscordData = async () => {
+            if (!user.value || user.value.discord_role !== 1) return;
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { 'Authorization': `Bearer ${token}` };
+                
+                const statsRes = await fetch(`${API_URL}/discord/stats`, { headers });
+                if (statsRes.ok) discordStats.value = await statsRes.json();
+                
+                const panelsRes = await fetch(`${API_URL}/discord/panels`, { headers });
+                if (panelsRes.ok) discordPanels.value = await panelsRes.json();
+                
+                const ticketsRes = await fetch(`${API_URL}/discord/tickets`, { headers });
+                if (ticketsRes.ok) discordTickets.value = await ticketsRes.json();
+                
+                const channelsRes = await fetch(`${API_URL}/discord/channels`, { headers });
+                if (channelsRes.ok) discordChannels.value = await channelsRes.json();
+            } catch (err) {
+                console.error("Error loading Discord data:", err);
+            }
+        };
+
+        let discordRefreshInterval = null;
+        function handleDiscordTab(newTab) {
+            if (discordRefreshInterval) {
+                clearInterval(discordRefreshInterval);
+                discordRefreshInterval = null;
+            }
+            if (newTab === 'discord' && user.value && user.value.discord_role === 1) {
+                loadDiscordData();
+                discordRefreshInterval = setInterval(() => {
+                    if (user.value && user.value.discord_role === 1) {
+                        const token = localStorage.getItem('token');
+                        if (!token) return;
+                        fetch(`${API_URL}/discord/tickets`, { headers: { 'Authorization': `Bearer ${token}` } })
+                            .then(res => res.ok ? res.json() : Promise.reject())
+                            .then(data => discordTickets.value = data)
+                            .catch(() => {});
+                    }
+                }, 15000); // 15 secondes
+            }
+        };
+
+        watch(currentTab, handleDiscordTab);
+
+        const openCreateDiscordPanel = () => {
+            discordPanelForm.value = {
+                id: null,
+                name: '',
+                embed_title: 'Système de Ticket',
+                embed_description: 'Cliquez sur le bouton ci-dessous pour ouvrir un ticket.',
+                embed_color: '#3B82F6',
+                button_text: 'Ouvrir un ticket',
+                button_emoji: '🎫',
+                button_color: 'primary',
+                active_category_id: '',
+                archive_category_id: '',
+                ping_role_id: '',
+                ping_creator: true,
+                max_tickets_per_user: 1,
+                intro_message: 'Veuillez patienter, un membre du staff va vous répondre.',
+                inactivity_days: 3,
+                close_button_text: 'Fermer le ticket',
+                close_button_color: 'danger',
+                close_button_emoji: '🔒',
+                reopen_button_text: 'Ré-ouvrir',
+                reopen_button_color: 'success',
+                reopen_button_emoji: '🔓',
+                delete_button_text: 'Supprimer',
+                delete_button_color: 'danger',
+                delete_button_emoji: '🗑️'
+            };
+            showDiscordPanelModal.value = true;
+        };
+
+        const openEditDiscordPanel = (panel) => {
+            discordPanelForm.value = {
+                id: panel.id,
+                name: panel.name || '',
+                embed_title: panel.embed_title || '',
+                embed_description: panel.embed_description || '',
+                embed_color: panel.embed_color || '#3B82F6',
+                button_text: panel.button_text || '',
+                button_emoji: panel.button_emoji || '',
+                button_color: panel.button_color || 'primary',
+                active_category_id: panel.active_category_id ? String(panel.active_category_id) : '',
+                archive_category_id: panel.archive_category_id ? String(panel.archive_category_id) : '',
+                ping_role_id: panel.ping_role_id ? String(panel.ping_role_id) : '',
+                ping_creator: panel.ping_creator !== undefined ? panel.ping_creator : true,
+                max_tickets_per_user: panel.max_tickets_per_user || 1,
+                intro_message: panel.intro_message || '',
+                inactivity_days: panel.inactivity_days || 3,
+                deployed_channel_id: panel.deployed_channel_id || null,
+                deployed_message_id: panel.deployed_message_id || null,
+                close_button_text: panel.close_button_text || 'Fermer le ticket',
+                close_button_color: panel.close_button_color || 'danger',
+                close_button_emoji: panel.close_button_emoji || '🔒',
+                reopen_button_text: panel.reopen_button_text || 'Ré-ouvrir',
+                reopen_button_color: panel.reopen_button_color || 'success',
+                reopen_button_emoji: panel.reopen_button_emoji || '🔓',
+                delete_button_text: panel.delete_button_text || 'Supprimer',
+                delete_button_color: panel.delete_button_color || 'danger',
+                delete_button_emoji: panel.delete_button_emoji || '🗑️'
+            };
+            showDiscordPanelModal.value = true;
+        };
+
+        const saveDiscordPanel = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const method = discordPanelForm.value.id ? 'PUT' : 'POST';
+                const url = discordPanelForm.value.id 
+                    ? `${API_URL}/discord/panels/${discordPanelForm.value.id}` 
+                    : `${API_URL}/discord/panels`;
+                
+                const payload = {
+                    name: discordPanelForm.value.name,
+                    embed_title: discordPanelForm.value.embed_title,
+                    embed_description: discordPanelForm.value.embed_description,
+                    embed_color: discordPanelForm.value.embed_color,
+                    button_text: discordPanelForm.value.button_text,
+                    button_emoji: discordPanelForm.value.button_emoji,
+                    button_color: discordPanelForm.value.button_color,
+                    active_category_id: discordPanelForm.value.active_category_id || null,
+                    archive_category_id: discordPanelForm.value.archive_category_id || null,
+                    ping_role_id: discordPanelForm.value.ping_role_id || null,
+                    ping_creator: discordPanelForm.value.ping_creator,
+                    max_tickets_per_user: parseInt(discordPanelForm.value.max_tickets_per_user) || 1,
+                    intro_message: discordPanelForm.value.intro_message,
+                    inactivity_days: parseInt(discordPanelForm.value.inactivity_days) || 3,
+                    close_button_text: discordPanelForm.value.close_button_text,
+                    close_button_color: discordPanelForm.value.close_button_color,
+                    close_button_emoji: discordPanelForm.value.close_button_emoji,
+                    reopen_button_text: discordPanelForm.value.reopen_button_text,
+                    reopen_button_color: discordPanelForm.value.reopen_button_color,
+                    reopen_button_emoji: discordPanelForm.value.reopen_button_emoji,
+                    delete_button_text: discordPanelForm.value.delete_button_text,
+                    delete_button_color: discordPanelForm.value.delete_button_color,
+                    delete_button_emoji: discordPanelForm.value.delete_button_emoji,
+                };
+                
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    showDiscordPanelModal.value = false;
+                    loadDiscordData();
+                    if (discordPanelForm.value.id && discordPanelForm.value.deployed_channel_id) {
+                        alert("Panel mis à jour et redéployé automatiquement sur Discord !");
+                    } else {
+                        alert("Panel sauvegardé avec succès !");
+                    }
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert("Erreur lors de la sauvegarde du panel : " + (err.detail || "Vérifiez vos champs"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Erreur réseau");
+            }
+        };
+
+        const deleteDiscordPanel = async (id) => {
+            if(!confirm("Supprimer ce panel (et ses questions) ?")) return;
+            try {
+                const res = await fetch(`${API_URL}/discord/panels/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (res.ok) loadDiscordData();
+            } catch(e) {}
+        };
+        
+        const openDeployModal = (panel) => {
+            discordDeployForm.value = { panel_id: panel.id, channel_id: '' };
+            showDiscordDeployModal.value = true;
+        };
+
+        const executeDiscordDeploy = async () => {
+            if (!discordDeployForm.value.channel_id) return;
+            try {
+                const res = await fetch(`${API_URL}/discord/panels/${discordDeployForm.value.panel_id}/send?channel_id=${discordDeployForm.value.channel_id}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (res.ok) {
+                    alert("Bouton déployé avec succès sur Discord !");
+                    showDiscordDeployModal.value = false;
+                }
+                else alert("Erreur d'envoi");
+            } catch(e) {}
+        };
+        
+        const openFieldsManager = async (panel) => {
+            currentFieldPanelId.value = panel.id;
+            try {
+                const res = await fetch(`${API_URL}/discord/panels/${panel.id}/fields`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (res.ok) {
+                    discordFields.value = await res.json();
+                    showDiscordFieldsModal.value = true;
+                }
+            } catch(e) {}
+        };
+        
+        const saveDiscordField = async () => {
+            if (discordFields.value.length >= 5 && !discordFieldForm.value.id) {
+                alert("Discord limite les formulaires à 5 questions maximum.");
+                return;
+            }
+            try {
+                const method = discordFieldForm.value.id ? 'PUT' : 'POST';
+                const url = discordFieldForm.value.id 
+                    ? `${API_URL}/discord/fields/${discordFieldForm.value.id}` 
+                    : `${API_URL}/discord/panels/${currentFieldPanelId.value}/fields`;
+                
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        label: discordFieldForm.value.label,
+                        is_paragraph: discordFieldForm.value.is_paragraph,
+                        required: discordFieldForm.value.required,
+                        order: discordFieldForm.value.order
+                    })
+                });
+                if (res.ok) {
+                    // refresh fields
+                    const refRes = await fetch(`${API_URL}/discord/panels/${currentFieldPanelId.value}/fields`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    if (refRes.ok) discordFields.value = await refRes.json();
+                    discordFieldForm.value = { id: null, label: '', is_paragraph: false, required: true, order: 0 };
+                }
+            } catch(e) {}
+        };
+        
+        const deleteDiscordField = async (id) => {
+            if(!confirm("Supprimer ce champ ?")) return;
+            try {
+                const res = await fetch(`${API_URL}/discord/fields/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (res.ok) {
+                    discordFields.value = discordFields.value.filter(f => f.id !== id);
+                }
+            } catch(e) {}
+        };
+
+        const closeDiscordTicket = async (id) => {
+            if(!confirm("Fermer ce ticket ?")) return;
+            try {
+                const res = await fetch(`${API_URL}/discord/tickets/${id}/close`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (res.ok) {
+                    loadDiscordData();
+                } else {
+                    alert("Erreur lors de la fermeture du ticket");
+                }
+            } catch(e) {}
+        };
+
+        const openDiscordArchive = async (ticketId) => {
+            try {
+                const res = await fetch(`${API_URL}/discord/tickets/${ticketId}/archive`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    discordTicketArchiveHtml.value = data.html_content;
+                    showDiscordTicketArchive.value = true;
+                }
+            } catch(e) {}
+        };
+
+        const filteredDiscordTickets = computed(() => {
+            let filtered = [...discordTickets.value];
+            if (discordSearch.value) {
+                const s = discordSearch.value.toLowerCase();
+                filtered = filtered.filter(t => 
+                    (t.id && t.id.toString().includes(s)) || 
+                    (t.creator_id && t.creator_id.toString().includes(s)) ||
+                    (t.status && t.status.toLowerCase().includes(s))
+                );
+            }
+            if (discordDateFilter.value) {
+                filtered = filtered.filter(t => t.created_at && t.created_at.startsWith(discordDateFilter.value));
+            }
+            
+            filtered.sort((a, b) => {
+                const dA = new Date(a.created_at || 0).getTime();
+                const dB = new Date(b.created_at || 0).getTime();
+                return discordSortDate.value === 'asc' ? dA - dB : dB - dA;
+            });
+            return filtered;
+        });
+
 
         return {
             user, currentTab, loginForm, eventForm, shiftTypeForm, inviteEmail, teamMembers, shiftTypes, apiUrl: API_URL, fullApiUrl: FULL_API_URL, loginError,
             newTeam, managerForm, allTeams, myTeam, showEventModal, eventPopover, mobileMenuOpen,
             logout, inviteUser, addShiftType, addEvent, createTeam, handleFileUpload, addManager, removeManager, deleteTeam,
-            updateMyTeam, handleMyTeamLogoUpload, removeMember, editEvent, deleteEvent, openCreateEventModal, addEventOnSameSlot
+            updateMyTeam, handleMyTeamLogoUpload, removeMember, editEvent, deleteEvent, openCreateEventModal, addEventOnSameSlot,
+            discordTab, discordStats, discordPanels, discordTickets, discordChannels, discordSearch, discordDateFilter, discordSortDate, 
+            showDiscordPanelModal, showDiscordPreviewModal, discordPanelForm, showDiscordTicketArchive, discordTicketArchiveHtml, 
+            showDiscordFieldsModal, discordFields, currentFieldPanelId, discordFieldForm, showDiscordDeployModal, discordDeployForm,
+            saveDiscordPanel, deleteDiscordPanel, openDeployModal, executeDiscordDeploy, openFieldsManager, saveDiscordField, deleteDiscordField,
+            openCreateDiscordPanel, openEditDiscordPanel,
+            openDiscordArchive, closeDiscordTicket, filteredDiscordTickets, loadDiscordData
         };
     }
 }).mount('#app');

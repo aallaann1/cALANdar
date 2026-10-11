@@ -238,6 +238,10 @@
                         <button @click="currentTab = 'profile'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'profile', 'text-slate-600 hover:text-slate-900': currentTab !== 'profile'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Profil</button>
                         <button v-if="user.is_manager && user.team_id" @click="currentTab = 'gestion'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'gestion', 'text-slate-600 hover:text-slate-900': currentTab !== 'gestion'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Gestion</button>
                         <button v-if="user.is_admin" @click="currentTab = 'admin'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'admin', 'text-slate-600 hover:text-slate-900': currentTab !== 'admin'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Admin</button>
+                        <button v-if="user.discord_role === 1" @click="currentTab = 'discord'" :class="{'bg-white shadow-sm text-[#5865F2]': currentTab === 'discord', 'text-slate-600 hover:text-slate-900': currentTab !== 'discord'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                            Discord
+                        </button>
                     </div>
 
                     <div class="flex items-center gap-4">
@@ -306,6 +310,13 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                         </div>
                         <span>Administration</span>
+                    </button>
+                    
+                    <button v-if="user.discord_role === 1" @click="currentTab = 'discord'; mobileMenuOpen = false" :class="{'bg-primary-50 text-primary-700 font-bold': currentTab === 'discord', 'text-slate-700 hover:bg-slate-50 font-medium': currentTab !== 'discord'}" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm transition">
+                        <div :class="{'bg-[#5865F2] text-white': currentTab === 'discord', 'bg-slate-100 text-slate-500': currentTab !== 'discord'}" class="w-8 h-8 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                        </div>
+                        <span>Discord</span>
                     </button>
                 </div>
 
@@ -649,6 +660,151 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Discord Tab -->
+                    <div v-show="currentTab === 'discord' && user.discord_role === 1" class="max-w-6xl mx-auto space-y-6">
+                        <div class="flex space-x-2 border-b border-slate-200 pb-2 mb-6">
+                            <button @click="discordTab = 'gestion'" :class="{'border-b-2 border-[#5865F2] text-[#5865F2]': discordTab === 'gestion', 'text-slate-500 hover:text-slate-700': discordTab !== 'gestion'}" class="px-4 py-2 font-medium">Gestion du bot</button>
+                            <button @click="discordTab = 'tickets'" :class="{'border-b-2 border-[#5865F2] text-[#5865F2]': discordTab === 'tickets', 'text-slate-500 hover:text-slate-700': discordTab !== 'tickets'}" class="px-4 py-2 font-medium">Tickets</button>
+                        </div>
+                        
+                        <!-- Gestion du bot -->
+                        <div v-show="discordTab === 'gestion'" class="space-y-6">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div class="card p-4 flex flex-col items-center">
+                                    <span class="text-sm text-slate-500">Tickets Totaux</span>
+                                    <span class="text-3xl font-bold text-slate-800">{{ discordStats?.total_tickets || 0 }}</span>
+                                </div>
+                                <div class="card p-4 flex flex-col items-center">
+                                    <span class="text-sm text-slate-500">Tickets Ouverts</span>
+                                    <span class="text-3xl font-bold text-emerald-600">{{ discordStats?.open_tickets || 0 }}</span>
+                                </div>
+                                <div class="card p-4 flex flex-col items-center">
+                                    <span class="text-sm text-slate-500">Tickets Fermés</span>
+                                    <span class="text-3xl font-bold text-slate-400">{{ discordStats?.closed_tickets || 0 }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card p-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-bold text-slate-800">Panels Discord</h3>
+                                    <button @click="openCreateDiscordPanel()" class="px-4 py-2 rounded-lg font-semibold transition-colors bg-[#5865F2] text-white hover:bg-[#4752C4] text-sm flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        Nouveau Panel
+                                    </button>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm text-left text-slate-500">
+                                        <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                                            <tr>
+                                                <th class="px-4 py-3">Nom</th>
+                                                <th class="px-4 py-3">Bouton</th>
+                                                <th class="px-4 py-3">Limite / User</th>
+                                                <th class="px-4 py-3">Statut</th>
+                                                <th class="px-4 py-3 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="panel in discordPanels" :key="panel.id" class="border-b hover:bg-slate-50/50">
+                                                <td class="px-4 py-3 font-semibold text-slate-900">{{ panel.name }}</td>
+                                                <td class="px-4 py-3">
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+                                                        <span>{{ panel.button_emoji || '🎫' }}</span>
+                                                        <span>{{ panel.button_text }}</span>
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                                                        Max {{ panel.max_tickets_per_user || 1 }} ticket(s)
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <span v-if="panel.deployed_channel_id" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                        Déployé
+                                                    </span>
+                                                    <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+                                                        Non déployé
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 text-right space-x-3">
+                                                    <button @click="openDeployModal(panel)" class="text-[#5865F2] font-semibold hover:underline" title="Envoyer sur Discord">Déployer</button>
+                                                    <button @click="openFieldsManager(panel)" class="text-indigo-600 font-semibold hover:underline" title="Gérer les questions">Questions</button>
+                                                    <button @click="openEditDiscordPanel(panel)" class="text-primary-600 hover:underline font-semibold">Modifier</button>
+                                                    <button @click="deleteDiscordPanel(panel.id)" class="text-red-600 hover:underline font-semibold">Supprimer</button>
+                                                </td>
+                                            </tr>
+                                            <tr v-if="!discordPanels.length">
+                                                <td colspan="5" class="px-4 py-8 text-center text-slate-400">Aucun panel configuré pour le moment.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tickets -->
+                        <div v-show="discordTab === 'tickets'" class="space-y-6">
+                            <div class="card p-6">
+                                <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                                    <input type="text" v-model="discordSearch" placeholder="Recherche par mot-clé..." class="input-field flex-1">
+                                    <input type="date" v-model="discordDateFilter" class="input-field w-full sm:w-auto">
+                                    <select v-model="discordSortDate" class="input-field w-full sm:w-auto">
+                                        <option value="desc">Du plus récent</option>
+                                        <option value="asc">Du plus ancien</option>
+                                    </select>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm text-left text-slate-500">
+                                        <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                                            <tr>
+                                                <th class="px-4 py-3">ID Ticket</th>
+                                                <th class="px-4 py-3">Statut</th>
+                                                <th class="px-4 py-3">Date</th>
+                                                <th class="px-4 py-3 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template v-for="ticket in filteredDiscordTickets" :key="ticket.id">
+                                                <tr class="border-b hover:bg-slate-50">
+                                                    <td class="px-4 py-3 font-medium text-slate-900">
+                                                        <span class="font-mono font-bold text-[#5865F2]">ticket{{ String(ticket.id).padStart(3, '0') }}</span>
+                                                        <span v-if="ticket.creator_id" class="text-[11px] text-slate-400 block font-normal">User: {{ ticket.creator_id }}</span>
+                                                    </td>
+                                                    <td class="px-4 py-3">
+                                                        <span :class="{'bg-emerald-100 text-emerald-800': ticket.status === 'open', 'bg-slate-100 text-slate-800': ticket.status !== 'open'}" class="px-2 py-1 rounded text-xs font-semibold">
+                                                            {{ ticket.status === 'open' ? 'Ouvert' : 'Fermé' }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-4 py-3">{{ new Date(ticket.created_at).toLocaleString('fr-FR') }}</td>
+                                                    <td class="px-4 py-3 text-right space-x-3">
+                                                        <button v-if="ticket.form_answers && Object.keys(ticket.form_answers).length > 0" @click="ticket.showAnswers = !ticket.showAnswers" class="text-indigo-600 font-semibold hover:underline">
+                                                            {{ ticket.showAnswers ? 'Cacher les réponses' : 'Voir les réponses' }}
+                                                        </button>
+                                                        <button v-if="ticket.status === 'open'" @click="closeDiscordTicket(ticket.id)" class="text-amber-600 hover:underline font-semibold">Fermer</button>
+                                                        <button v-if="ticket.status !== 'open'" @click="openDiscordArchive(ticket.id)" class="text-primary-600 hover:underline font-semibold">Archive</button>
+                                                    </td>
+                                                </tr>
+                                                <tr v-if="ticket.showAnswers && ticket.form_answers" class="bg-indigo-50/50 border-b">
+                                                    <td colspan="4" class="px-4 py-3">
+                                                        <div class="space-y-2 text-sm text-slate-700 p-2 rounded-lg bg-white shadow-sm border border-indigo-100">
+                                                            <div v-for="(answer, question) in ticket.form_answers" :key="question">
+                                                                <span class="font-bold text-indigo-900 block">{{ question }}</span>
+                                                                <span class="whitespace-pre-wrap">{{ answer }}</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                            <tr v-if="!filteredDiscordTickets.length">
+                                                <td colspan="4" class="px-4 py-3 text-center text-slate-500">Aucun ticket trouvé.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Event Creation Modal (Popup) -->
@@ -725,8 +881,511 @@
                 </button>
                 </teleport>
 
+                <!-- Discord Panel Modal -->
+                <teleport to="body">
+                    <div v-if="showDiscordPanelModal" @click.self="showDiscordPanelModal = false" class="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                        <div class="w-full max-w-3xl bg-white rounded-2xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+                            <!-- Modal Header -->
+                            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-[#5865F2]/10 text-[#5865F2] flex items-center justify-center font-bold">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-bold text-slate-800">{{ discordPanelForm.id ? 'Modifier le Panel Discord' : 'Nouveau Panel Discord' }}</h3>
+                                        <p class="text-xs text-slate-500">Configurez l'apparence, les boutons et le comportement de votre panneau</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" @click="showDiscordPreviewModal = true" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#5865F2]/10 text-[#5865F2] hover:bg-[#5865F2]/20 transition-colors flex items-center gap-1.5">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        Aperçu Discord
+                                    </button>
+                                    <button @click="showDiscordPanelModal = false" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Modal Body -->
+                            <form @submit.prevent="saveDiscordPanel" class="flex-1 overflow-y-auto p-6 space-y-6">
+                                <!-- SECTION 1: Message & Embed -->
+                                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-4">
+                                    <div class="flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                                        <span class="text-base">💬</span>
+                                        <h4 class="font-bold text-sm text-slate-800">1. Message & Embed Discord (Dans le salon public)</h4>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Nom interne du Panel *</label>
+                                            <input type="text" v-model="discordPanelForm.name" required class="input-field" placeholder="ex: Support Général">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Titre de l'Embed</label>
+                                            <input type="text" v-model="discordPanelForm.embed_title" class="input-field" placeholder="ex: 🎫 Centre d'Assistance">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Description de l'Embed</label>
+                                        <textarea v-model="discordPanelForm.embed_description" rows="2" class="input-field" placeholder="Cliquez sur le bouton ci-dessous pour ouvrir un ticket auprès de notre équipe..."></textarea>
+                                    </div>
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex-1">
+                                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Couleur de la bordure Embed</label>
+                                            <div class="flex items-center gap-3">
+                                                <input type="color" v-model="discordPanelForm.embed_color" class="w-12 h-10 rounded-lg cursor-pointer border border-slate-200">
+                                                <span class="font-mono text-sm font-semibold text-slate-700">{{ discordPanelForm.embed_color }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SECTION 2: Bouton d'Ouverture du Ticket -->
+                                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-4">
+                                    <div class="flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                                        <span class="text-base">🔘</span>
+                                        <h4 class="font-bold text-sm text-slate-800">2. Bouton d'Ouverture du Ticket</h4>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Texte du Bouton *</label>
+                                            <input type="text" v-model="discordPanelForm.button_text" required class="input-field" placeholder="ex: Ouvrir un ticket">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Emoji</label>
+                                            <input type="text" v-model="discordPanelForm.button_emoji" class="input-field" placeholder="ex: 🎫">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Couleur du Bouton Discord</label>
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                            <label :class="{'ring-2 ring-[#5865F2] ring-offset-1': discordPanelForm.button_color === 'primary'}" class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer bg-white hover:bg-slate-50">
+                                                <input type="radio" v-model="discordPanelForm.button_color" value="primary" class="hidden">
+                                                <span class="w-4 h-4 rounded-full bg-[#5865F2]"></span>
+                                                <span class="text-xs font-semibold text-slate-800">Bleu (Primary)</span>
+                                            </label>
+                                            <label :class="{'ring-2 ring-emerald-500 ring-offset-1': discordPanelForm.button_color === 'success'}" class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer bg-white hover:bg-slate-50">
+                                                <input type="radio" v-model="discordPanelForm.button_color" value="success" class="hidden">
+                                                <span class="w-4 h-4 rounded-full bg-[#248046]"></span>
+                                                <span class="text-xs font-semibold text-slate-800">Vert (Success)</span>
+                                            </label>
+                                            <label :class="{'ring-2 ring-red-500 ring-offset-1': discordPanelForm.button_color === 'danger'}" class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer bg-white hover:bg-slate-50">
+                                                <input type="radio" v-model="discordPanelForm.button_color" value="danger" class="hidden">
+                                                <span class="w-4 h-4 rounded-full bg-[#da373c]"></span>
+                                                <span class="text-xs font-semibold text-slate-800">Rouge (Danger)</span>
+                                            </label>
+                                            <label :class="{'ring-2 ring-slate-400 ring-offset-1': discordPanelForm.button_color === 'secondary'}" class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer bg-white hover:bg-slate-50">
+                                                <input type="radio" v-model="discordPanelForm.button_color" value="secondary" class="hidden">
+                                                <span class="w-4 h-4 rounded-full bg-[#4e5058]"></span>
+                                                <span class="text-xs font-semibold text-slate-800">Gris (Secondary)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SECTION 3: Paramètres du Ticket & Salons -->
+                                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-4">
+                                    <div class="flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                                        <span class="text-base">⚙️</span>
+                                        <h4 class="font-bold text-sm text-slate-800">3. Paramètres du Ticket (Création, Catégories, Pings)</h4>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Nombre max de tickets par utilisateur</label>
+                                            <input type="number" v-model.number="discordPanelForm.max_tickets_per_user" min="1" max="50" class="input-field" placeholder="1">
+                                            <span class="text-[11px] text-slate-500 mt-0.5 block">Empêche les utilisateurs d'ouvrir plus de X tickets simultanés</span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Jours d'inactivité avant archivage auto</label>
+                                            <input type="number" v-model.number="discordPanelForm.inactivity_days" min="1" max="90" class="input-field" placeholder="3">
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Catégorie des tickets ouverts</label>
+                                            <select v-model="discordPanelForm.active_category_id" class="input-field">
+                                                <option value="">-- Aucune catégorie (racine) --</option>
+                                                <optgroup v-for="guild in discordChannels" :key="guild.guild_id" :label="guild.guild_name">
+                                                    <option v-for="cat in guild.categories" :key="cat.id" :value="cat.id">
+                                                        📁 {{ cat.name }} (ID: {{ cat.id }})
+                                                    </option>
+                                                </optgroup>
+                                            </select>
+                                            <div class="mt-1 flex items-center gap-2">
+                                                <span class="text-[10px] text-slate-400">Ou saisir un ID manuel :</span>
+                                                <input type="text" v-model="discordPanelForm.active_category_id" placeholder="ID catégorie" class="text-xs px-2 py-0.5 rounded border border-slate-200 bg-white flex-1">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Catégorie des archives (tickets fermés)</label>
+                                            <select v-model="discordPanelForm.archive_category_id" class="input-field">
+                                                <option value="">-- Ne pas déplacer (conserver) --</option>
+                                                <optgroup v-for="guild in discordChannels" :key="guild.guild_id" :label="guild.guild_name">
+                                                    <option v-for="cat in guild.categories" :key="cat.id" :value="cat.id">
+                                                        📦 {{ cat.name }} (ID: {{ cat.id }})
+                                                    </option>
+                                                </optgroup>
+                                            </select>
+                                            <div class="mt-1 flex items-center gap-2">
+                                                <span class="text-[10px] text-slate-400">Ou saisir un ID manuel :</span>
+                                                <input type="text" v-model="discordPanelForm.archive_category_id" placeholder="ID archive" class="text-xs px-2 py-0.5 rounded border border-slate-200 bg-white flex-1">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Rôle staff à mentionner à l'ouverture</label>
+                                            <select v-model="discordPanelForm.ping_role_id" class="input-field">
+                                                <option value="">-- Aucun rôle mentionné --</option>
+                                                <optgroup v-for="guild in discordChannels" :key="guild.guild_id" :label="guild.guild_name">
+                                                    <option v-for="role in guild.roles" :key="role.id" :value="role.id">
+                                                        🛡️ @{{ role.name }} (ID: {{ role.id }})
+                                                    </option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <div class="flex items-center pt-5">
+                                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                                <input type="checkbox" v-model="discordPanelForm.ping_creator" class="w-4 h-4 text-[#5865F2] rounded border-slate-300">
+                                                <span class="text-xs font-semibold text-slate-700">Mentionner le créateur du ticket à l'ouverture</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Premier message envoyé dans le ticket (Embed intro)</label>
+                                        <textarea v-model="discordPanelForm.intro_message" rows="2" class="input-field" placeholder="Veuillez patienter, un membre du staff va prendre en charge votre demande..."></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- SECTION 4: Boutons d'Action dans le Ticket -->
+                                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-4">
+                                    <div class="flex items-center gap-2 border-b border-slate-200/80 pb-2">
+                                        <span class="text-base">🎛️</span>
+                                        <h4 class="font-bold text-sm text-slate-800">4. Boutons d'Action (Dans le ticket créé)</h4>
+                                    </div>
+
+                                    <!-- Bouton Fermer -->
+                                    <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                                        <span class="text-xs font-bold text-slate-700 block">Bouton 1 : Fermer le ticket (affiché quand le ticket est ouvert)</span>
+                                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div>
+                                                <label class="text-[11px] text-slate-500 font-semibold block mb-0.5">Texte</label>
+                                                <input type="text" v-model="discordPanelForm.close_button_text" class="input-field text-sm" placeholder="Fermer le ticket">
+                                            </div>
+                                            <div>
+                                                <label class="text-[11px] text-slate-500 font-semibold block mb-0.5">Emoji</label>
+                                                <input type="text" v-model="discordPanelForm.close_button_emoji" class="input-field text-sm" placeholder="🔒">
+                                            </div>
+                                            <div>
+                                                <label class="text-[11px] text-slate-500 font-semibold block mb-0.5">Couleur</label>
+                                                <select v-model="discordPanelForm.close_button_color" class="input-field text-sm">
+                                                    <option value="danger">Rouge (Danger)</option>
+                                                    <option value="secondary">Gris (Secondary)</option>
+                                                    <option value="primary">Bleu (Primary)</option>
+                                                    <option value="success">Vert (Success)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Bouton Ré-ouvrir -->
+                                    <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                                        <span class="text-xs font-bold text-slate-700 block">Bouton 2 : Ré-ouvrir le ticket (affiché après fermeture)</span>
+                                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div>
+                                                <label class="text-[11px] text-slate-500 font-semibold block mb-0.5">Texte</label>
+                                                <input type="text" v-model="discordPanelForm.reopen_button_text" class="input-field text-sm" placeholder="Ré-ouvrir">
+                                            </div>
+                                            <div>
+                                                <label class="text-[11px] text-slate-500 font-semibold block mb-0.5">Emoji</label>
+                                                <input type="text" v-model="discordPanelForm.reopen_button_emoji" class="input-field text-sm" placeholder="🔓">
+                                            </div>
+                                            <div>
+                                                <label class="text-[11px] text-slate-500 font-semibold block mb-0.5">Couleur</label>
+                                                <select v-model="discordPanelForm.reopen_button_color" class="input-field text-sm">
+                                                    <option value="success">Vert (Success)</option>
+                                                    <option value="primary">Bleu (Primary)</option>
+                                                    <option value="secondary">Gris (Secondary)</option>
+                                                    <option value="danger">Rouge (Danger)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Bouton Supprimer -->
+                                    <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                                        <span class="text-xs font-bold text-slate-700 block">Bouton 3 : Supprimer le ticket (affiché après fermeture)</span>
+                                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div>
+                                                <label class="text-[11px] text-slate-500 font-semibold block mb-0.5">Texte</label>
+                                                <input type="text" v-model="discordPanelForm.delete_button_text" class="input-field text-sm" placeholder="Supprimer">
+                                            </div>
+                                            <div>
+                                                <label class="text-[11px] text-slate-500 font-semibold block mb-0.5">Emoji</label>
+                                                <input type="text" v-model="discordPanelForm.delete_button_emoji" class="input-field text-sm" placeholder="🗑️">
+                                            </div>
+                                            <div>
+                                                <label class="text-[11px] text-slate-500 font-semibold block mb-0.5">Couleur</label>
+                                                <select v-model="discordPanelForm.delete_button_color" class="input-field text-sm">
+                                                    <option value="danger">Rouge (Danger)</option>
+                                                    <option value="secondary">Gris (Secondary)</option>
+                                                    <option value="primary">Bleu (Primary)</option>
+                                                    <option value="success">Vert (Success)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Actions du modal -->
+                                <div class="pt-2 flex items-center justify-between gap-3 border-t border-slate-100">
+                                    <button type="button" @click="showDiscordPreviewModal = true" class="px-4 py-2.5 rounded-xl font-semibold transition-colors bg-slate-100 text-slate-700 hover:bg-slate-200 text-sm flex items-center gap-1.5">
+                                        <span>👁️</span> Aperçu Discord
+                                    </button>
+                                    <div class="flex gap-2.5">
+                                        <button type="button" @click="showDiscordPanelModal = false" class="px-5 py-2.5 rounded-xl font-semibold transition-colors bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm">Annuler</button>
+                                        <button type="submit" class="px-6 py-2.5 rounded-xl font-semibold transition-colors bg-[#5865F2] hover:bg-[#4752C4] text-white text-sm shadow-sm flex items-center gap-2">
+                                            <span>💾</span>
+                                            <span>{{ discordPanelForm.id ? 'Mettre à jour & Redéployer' : 'Créer le Panel' }}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </teleport>
+
+                <!-- Discord Realistic Preview Modal -->
+                <teleport to="body">
+                    <div v-if="showDiscordPreviewModal" @click.self="showDiscordPreviewModal = false" class="fixed inset-0 z-[450] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                        <div class="w-full max-w-2xl bg-[#313338] text-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                            <!-- Discord Bar Header -->
+                            <div class="px-5 py-3.5 bg-[#2b2d31] border-b border-[#1f2023] flex justify-between items-center">
+                                <div class="flex items-center gap-2 text-sm font-bold text-gray-200">
+                                    <span class="text-gray-400">#</span>
+                                    <span>📩・tickets</span>
+                                    <span class="text-xs px-2 py-0.5 rounded bg-[#232428] text-gray-400 font-normal">Aperçu en direct Discord</span>
+                                </div>
+                                <button @click="showDiscordPreviewModal = false" class="text-gray-400 hover:text-white">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+
+                            <div class="p-6 space-y-6 overflow-y-auto font-sans">
+                                <!-- Vue 1: Salon public avec le panel déployé -->
+                                <div>
+                                    <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Message déployé dans le salon :</div>
+                                    <div class="flex gap-4 items-start">
+                                        <div class="w-10 h-10 rounded-full bg-[#5865F2] flex items-center justify-center text-white font-bold text-base shrink-0 shadow">
+                                            🤖
+                                        </div>
+                                        <div class="flex-1 space-y-2">
+                                            <div class="flex items-baseline gap-2">
+                                                <span class="font-bold text-sm text-white hover:underline cursor-pointer">cALANdar Bot</span>
+                                                <span class="bg-[#5865F2] text-[10px] text-white font-bold px-1 rounded uppercase tracking-wider">APP</span>
+                                                <span class="text-xs text-gray-400">Aujourd'hui à 12:00</span>
+                                            </div>
+
+                                            <!-- Discord Embed -->
+                                            <div class="bg-[#2b2d31] rounded p-4 max-w-lg border-l-4 shadow-sm space-y-2" :style="{ borderColor: discordPanelForm.embed_color || '#3B82F6' }">
+                                                <div class="font-bold text-base text-white">{{ discordPanelForm.embed_title || 'Titre de l\'Embed' }}</div>
+                                                <div class="text-sm text-[#dbdee1] whitespace-pre-wrap">{{ discordPanelForm.embed_description || 'Description du panel ici...' }}</div>
+                                                <div class="text-xs text-[#949ba4] pt-2 border-t border-[#383a40]">Système de Ticketing</div>
+                                            </div>
+
+                                            <!-- Discord Open Button -->
+                                            <div class="pt-1 flex gap-2">
+                                                <button type="button" class="px-4 py-2 rounded font-medium text-sm text-white flex items-center gap-2 shadow cursor-default"
+                                                    :style="{
+                                                        backgroundColor: discordPanelForm.button_color === 'success' ? '#248046' :
+                                                                         discordPanelForm.button_color === 'danger' ? '#da373c' :
+                                                                         discordPanelForm.button_color === 'secondary' ? '#4e5058' : '#5865F2'
+                                                    }">
+                                                    <span v-if="discordPanelForm.button_emoji">{{ discordPanelForm.button_emoji }}</span>
+                                                    <span>{{ discordPanelForm.button_text || 'Ouvrir un ticket' }}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-[#383a40] pt-4">
+                                    <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Aperçu du salon ouvert (#ticket001) :</div>
+                                    
+                                    <div class="bg-[#2b2d31]/50 p-4 rounded-xl border border-[#383a40] space-y-3">
+                                        <!-- Pings -->
+                                        <div class="text-xs text-[#dbdee1] flex items-center gap-1.5 flex-wrap">
+                                            <span v-if="discordPanelForm.ping_creator" class="px-1.5 py-0.5 rounded bg-[#5865F2]/20 text-[#c9cdfb] font-semibold">@Utilisateur</span>
+                                            <span v-if="discordPanelForm.ping_role_id" class="px-1.5 py-0.5 rounded bg-[#5865F2]/20 text-[#c9cdfb] font-semibold">@Staff</span>
+                                            <span>Welcome</span>
+                                        </div>
+
+                                        <!-- Intro Embed -->
+                                        <div class="bg-[#2b2d31] rounded p-3 max-w-lg border-l-4" :style="{ borderColor: discordPanelForm.embed_color || '#3B82F6' }">
+                                            <div class="text-xs text-[#dbdee1] whitespace-pre-wrap">{{ discordPanelForm.intro_message || 'Veuillez patienter...' }}</div>
+                                            <div class="text-[10px] text-[#949ba4] pt-2">Système de Ticketing - ticket001</div>
+                                        </div>
+
+                                        <!-- Bouton Fermer -->
+                                        <div class="pt-1">
+                                            <div class="text-[11px] text-gray-400 mb-1">Quand le ticket est ouvert :</div>
+                                            <button type="button" class="px-3 py-1.5 rounded text-xs font-semibold text-white flex items-center gap-1.5 cursor-default"
+                                                :style="{
+                                                    backgroundColor: discordPanelForm.close_button_color === 'success' ? '#248046' :
+                                                                     discordPanelForm.close_button_color === 'secondary' ? '#4e5058' :
+                                                                     discordPanelForm.close_button_color === 'primary' ? '#5865F2' : '#da373c'
+                                                }">
+                                                <span>{{ discordPanelForm.close_button_emoji || '🔒' }}</span>
+                                                <span>{{ discordPanelForm.close_button_text || 'Fermer le ticket' }}</span>
+                                            </button>
+                                        </div>
+
+                                        <!-- Boutons après fermeture -->
+                                        <div class="pt-2 border-t border-[#383a40]">
+                                            <div class="text-[11px] text-gray-400 mb-1">Quand le ticket est fermé (archive) :</div>
+                                            <div class="flex gap-2">
+                                                <button type="button" class="px-3 py-1.5 rounded text-xs font-semibold text-white flex items-center gap-1.5 cursor-default"
+                                                    :style="{
+                                                        backgroundColor: discordPanelForm.reopen_button_color === 'danger' ? '#da373c' :
+                                                                         discordPanelForm.reopen_button_color === 'secondary' ? '#4e5058' :
+                                                                         discordPanelForm.reopen_button_color === 'primary' ? '#5865F2' : '#248046'
+                                                    }">
+                                                    <span>{{ discordPanelForm.reopen_button_emoji || '🔓' }}</span>
+                                                    <span>{{ discordPanelForm.reopen_button_text || 'Ré-ouvrir' }}</span>
+                                                </button>
+                                                <button type="button" class="px-3 py-1.5 rounded text-xs font-semibold text-white flex items-center gap-1.5 cursor-default"
+                                                    :style="{
+                                                        backgroundColor: discordPanelForm.delete_button_color === 'success' ? '#248046' :
+                                                                         discordPanelForm.delete_button_color === 'secondary' ? '#4e5058' :
+                                                                         discordPanelForm.delete_button_color === 'primary' ? '#5865F2' : '#da373c'
+                                                    }">
+                                                    <span>{{ discordPanelForm.delete_button_emoji || '🗑️' }}</span>
+                                                    <span>{{ discordPanelForm.delete_button_text || 'Supprimer' }}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="px-5 py-3 bg-[#2b2d31] border-t border-[#1f2023] flex justify-end">
+                                <button type="button" @click="showDiscordPreviewModal = false" class="px-4 py-1.5 rounded text-xs font-semibold bg-[#5865F2] text-white hover:bg-[#4752C4] transition-colors">
+                                    Fermer l'aperçu
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </teleport>
+
+                <!-- Discord Ticket Archive Modal -->
+                <teleport to="body">
+                    <div v-if="showDiscordTicketArchive" @click.self="showDiscordTicketArchive = false" class="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                        <div class="w-full max-w-4xl bg-[#36393F] rounded-xl shadow-2xl h-[80vh] flex flex-col overflow-hidden">
+                            <div class="bg-[#202225] px-4 py-3 flex justify-between items-center shrink-0 border-b border-gray-800">
+                                <h3 class="text-white font-bold">Archive du Ticket</h3>
+                                <button @click="showDiscordTicketArchive = false" class="text-gray-400 hover:text-white">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+                            <div class="flex-1 bg-white overflow-hidden">
+                                <iframe :srcdoc="discordTicketArchiveHtml" class="w-full h-full border-none"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </teleport>
+                <!-- Discord Deploy Modal -->
+                <teleport to="body">
+                    <div v-if="showDiscordDeployModal" @click.self="showDiscordDeployModal = false" class="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                        <div class="w-full max-w-md p-6 bg-white rounded-2xl shadow-2xl">
+                            <h3 class="text-xl font-bold mb-4">Déployer le Panel</h3>
+                            <form @submit.prevent="executeDiscordDeploy" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700 mb-1">Sélectionnez le salon de destination</label>
+                                    <select v-model="discordDeployForm.channel_id" required class="input-field">
+                                        <option value="" disabled>-- Choisir un salon --</option>
+                                        <optgroup v-for="guild in discordChannels" :key="guild.guild_id" :label="guild.guild_name">
+                                            <option v-for="channel in guild.channels" :key="channel.id" :value="channel.id">
+                                                #{{ channel.name }}
+                                            </option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div class="pt-4 flex gap-3">
+                                    <button type="button" @click="showDiscordDeployModal = false" class="px-4 py-2 rounded-lg font-semibold transition-colors bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 flex-1">Annuler</button>
+                                    <button type="submit" class="px-4 py-2 rounded-lg font-semibold transition-colors bg-[#5865F2] hover:bg-[#4752C4] text-white flex-1">Déployer</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </teleport>
+
+                <!-- Discord Fields (Questions) Modal -->
+                <teleport to="body">
+                    <div v-if="showDiscordFieldsModal" @click.self="showDiscordFieldsModal = false" class="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                        <div class="w-full max-w-2xl p-6 bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-bold">Questions du Formulaire ({{ discordFields.length }}/5)</h3>
+                                <button @click="showDiscordFieldsModal = false" class="text-slate-400 hover:text-slate-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+                            
+                            <!-- Liste des questions existantes -->
+                            <div class="space-y-2 mb-6">
+                                <div v-for="field in discordFields" :key="field.id" class="flex justify-between items-center p-3 border rounded-lg bg-slate-50">
+                                    <div>
+                                        <span class="font-bold text-slate-800">{{ field.label }}</span>
+                                        <span class="text-xs text-slate-500 ml-2">({{ field.is_paragraph ? 'Paragraphe' : 'Texte court' }} - {{ field.required ? 'Obligatoire' : 'Optionnel' }})</span>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button @click="discordFieldForm = {...field}" class="text-primary-600 hover:underline text-sm font-semibold">Modifier</button>
+                                        <button @click="deleteDiscordField(field.id)" class="text-red-600 hover:underline text-sm font-semibold">Supprimer</button>
+                                    </div>
+                                </div>
+                                <div v-if="discordFields.length === 0" class="text-slate-500 text-sm italic text-center py-4">Aucune question configurée.</div>
+                                <div v-if="discordFields.length >= 5" class="text-amber-600 text-sm font-bold text-center py-2 bg-amber-50 rounded-lg">Limite maximale de 5 questions atteinte.</div>
+                            </div>
+                            
+                            <!-- Formulaire d'ajout/modification -->
+                            <div v-if="discordFields.length < 5 || discordFieldForm.id" class="border-t pt-4">
+                                <h4 class="font-bold mb-3">{{ discordFieldForm.id ? 'Modifier la question' : 'Ajouter une question' }}</h4>
+                                <form @submit.prevent="saveDiscordField" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-700 mb-1">Label (Question)</label>
+                                        <input type="text" v-model="discordFieldForm.label" required maxlength="45" class="input-field" placeholder="ex: Quel est votre pseudo ?">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-1">Type de champ</label>
+                                            <select v-model="discordFieldForm.is_paragraph" class="input-field">
+                                                <option :value="false">Texte court</option>
+                                                <option :value="true">Paragraphe (Long)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-semibold text-slate-700 mb-1">Ordre d'affichage</label>
+                                            <input type="number" v-model="discordFieldForm.order" min="0" max="4" class="input-field">
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="checkbox" id="reqField" v-model="discordFieldForm.required" class="w-4 h-4 text-primary-600 rounded">
+                                        <label for="reqField" class="text-sm font-semibold text-slate-700">Réponse obligatoire</label>
+                                    </div>
+                                    <div class="pt-2 flex gap-3">
+                                        <button v-if="discordFieldForm.id" type="button" @click="discordFieldForm = { id: null, label: '', is_paragraph: false, required: true, order: 0 }" class="px-4 py-2 rounded-lg font-semibold transition-colors bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 flex-1">Annuler l'édition</button>
+                                        <button type="submit" class="px-4 py-2 rounded-lg font-semibold transition-colors bg-[#5865F2] hover:bg-[#4752C4] text-white flex-1">{{ discordFieldForm.id ? 'Sauvegarder' : 'Ajouter' }}</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </teleport>
+
         </main>
     </div>
-    <script src="app.js?v=20261009-2"></script>
+    <script src="app.js?v=20261010-4"></script>
 </body>
 </html>

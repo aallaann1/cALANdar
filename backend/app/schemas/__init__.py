@@ -23,6 +23,7 @@ class User(UserBase):
     id: int
     is_manager: bool
     is_admin: bool
+    discord_role: int = 0
     team_id: Optional[int] = None
 
     class Config:

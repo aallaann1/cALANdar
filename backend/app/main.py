@@ -15,7 +15,7 @@ from app.core.migrations import sync_database_schema
 from app.models import User
 from app.core.security import get_password_hash, verify_password, create_access_token
 
-from app.routers import users, teams, events, ical
+from app.routers import users, teams, events, ical, discord
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -71,6 +71,7 @@ app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(teams.router, prefix="/api/teams", tags=["teams"])
 app.include_router(events.router, prefix="/api/events", tags=["events"])
 app.include_router(ical.router, prefix="/api/ical", tags=["ical"])
+app.include_router(discord.router, prefix="/api")
 
 from pydantic import BaseModel
 from google.oauth2 import id_token

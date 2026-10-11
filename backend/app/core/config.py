@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str
     ADMIN_EMAIL: str = "alanterrier11@gmail.com"
     UPLOAD_DIR: str = "uploads"
+    DISCORD_BOT_API_URL: str = "http://localhost:8001/api"
+    DISCORD_BOT_API_KEY: str = "ta_cle_secrete_definie_dans_le_env"
 
     class Config:
         env_file = ".env"
