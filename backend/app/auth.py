@@ -21,11 +21,23 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         if email is None:
             raise credentials_exception
         token_data = TokenData(email=email)
+        token_version = payload.get("token_version")
     except JWTError:
         raise credentials_exception
     user = db.query(User).filter(User.email == token_data.email).first()
     if user is None:
         raise credentials_exception
+
+    if bool(user.is_blocked):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Votre compte a été bloqué par un administrateur."
+        )
+
+    if token_version is not None and user.token_version is not None:
+        if int(token_version) != int(user.token_version):
+            raise credentials_exception
+
     return user
 
 def get_current_active_user(current_user: User = Depends(get_current_user)):

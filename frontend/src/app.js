@@ -16,6 +16,10 @@ createApp({
                     else initCalendar();
                 }, 100);
             }
+            if (newTab === 'admin' && user.value && user.value.is_admin) {
+                fetchTeams();
+                fetchUsers();
+            }
         });
         const loginForm = ref({ username: '', password: '' });
         const eventForm = ref({ user_ids: [], shift_type_id: '', start_time: '', end_time: '', editingEventIds: null });
@@ -28,9 +32,27 @@ createApp({
         const eventPopover = ref({ show: false, x: 0, y: 0, eventInfo: null });
         const allTeams = ref([]);
         const myTeam = ref(null);
+
+        // Admin User Management states
+        const adminSubTab = ref(localStorage.getItem('adminSubTab') || 'equipes'); // 'equipes' or 'utilisateurs'
+
+        watch(adminSubTab, (newSubTab) => {
+            localStorage.setItem('adminSubTab', newSubTab);
+        });
+        const allUsers = ref([]);
+        const userSearch = ref('');
+        const userFilterTeam = ref('');
+        const userFilterStatus = ref('');
+        const isImpersonating = ref(!!localStorage.getItem('admin_impersonator_token'));
+        const impersonatedEmail = ref(localStorage.getItem('impersonated_user_email') || '');
+        const showRoleModal = ref(false);
+        const roleModalUser = ref(null);
+        const roleModalForm = ref({ discord_role: 0 });
+        const showDeleteUserModal = ref(false);
+        const deleteUserTarget = ref(null);
         
         // Discord states
-        const discordTab = ref('gestion');
+        const discordTab = ref('tickets');
         const discordStats = ref({});
         const discordPanels = ref([]);
         const discordTickets = ref([]);
@@ -38,6 +60,9 @@ createApp({
         const discordSearch = ref('');
         const discordDateFilter = ref('');
         const discordSortDate = ref('desc');
+        const ticketsPageSize = 25;
+        const visibleTicketsLimit = ref(25);
+        const isLoadingMoreTickets = ref(false);
         const showDiscordPanelModal = ref(false);
         const showDiscordPreviewModal = ref(false);
         const discordPanelForm = ref({ 
@@ -98,6 +123,8 @@ createApp({
 
         const logout = () => {
             localStorage.removeItem('token');
+            localStorage.removeItem('admin_impersonator_token');
+            localStorage.removeItem('impersonated_user_email');
             document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             user.value = null;
             window.location.reload();
@@ -110,11 +137,18 @@ createApp({
                 if (res.ok) {
                     user.value = await res.json();
                     if (user.value.is_manager) fetchManagerData();
-                    if (user.value.is_admin) fetchTeams();
+                    if (user.value.is_admin) {
+                        if (typeof fetchTeams === 'function') fetchTeams();
+                        if (typeof fetchUsers === 'function') fetchUsers();
+                    }
                     if (currentTab.value === 'planning') setTimeout(initCalendar, 100);
                     if (currentTab.value === 'discord') handleDiscordTab('discord');
                 } else {
-                    logout();
+                    if (localStorage.getItem('admin_impersonator_token')) {
+                        stopImpersonating();
+                    } else {
+                        logout();
+                    }
                 }
             } catch (e) {
                 console.error(e);
@@ -589,6 +623,207 @@ createApp({
             } catch(e) { console.error(e); }
         };
 
+        // User Management Methods (Admin)
+        const fetchUsers = async () => {
+            try {
+                const res = await fetch(`${API_URL}/users/`, { headers: authHeader() });
+                if (res.ok) {
+                    allUsers.value = await res.json();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        };
+
+        const filteredUsers = computed(() => {
+            let list = allUsers.value;
+            if (userSearch.value.trim()) {
+                const q = userSearch.value.trim().toLowerCase();
+                list = list.filter(u => {
+                    const fullName = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase();
+                    const email = (u.email || '').toLowerCase();
+                    const team = (u.team_name || '').toLowerCase();
+                    return fullName.includes(q) || email.includes(q) || team.includes(q);
+                });
+            }
+            if (userFilterTeam.value) {
+                if (userFilterTeam.value === 'none') {
+                    list = list.filter(u => !u.team_id);
+                } else {
+                    list = list.filter(u => u.team_id == userFilterTeam.value);
+                }
+            }
+            if (userFilterStatus.value) {
+                if (userFilterStatus.value === 'active') {
+                    list = list.filter(u => !u.is_blocked);
+                } else if (userFilterStatus.value === 'blocked') {
+                    list = list.filter(u => u.is_blocked);
+                }
+            }
+            return list;
+        });
+
+        const toggleBlockUser = async (targetUser) => {
+            if (user.value && targetUser.id === user.value.id) {
+                alert("Vous ne pouvez pas bloquer votre propre compte administrateur.");
+                return;
+            }
+            const actionText = targetUser.is_blocked ? "débloquer" : "bloquer";
+            if (!confirm(`Êtes-vous sûr de vouloir ${actionText} l'utilisateur ${targetUser.email} ?`)) return;
+            try {
+                const res = await fetch(`${API_URL}/users/${targetUser.id}/toggle-block`, {
+                    method: 'PUT',
+                    headers: authHeader()
+                });
+                if (res.ok) {
+                    const updated = await res.json();
+                    targetUser.is_blocked = updated.is_blocked;
+                    targetUser.token_version = updated.token_version;
+                    alert(`Utilisateur ${targetUser.email} ${updated.is_blocked ? 'bloqué' : 'débloqué'} avec succès.`);
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || "Erreur lors de la mise à jour du statut.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Erreur de communication avec le serveur.");
+            }
+        };
+
+        const disconnectUser = async (targetUser) => {
+            if (!confirm(`Forcer la déconnexion de ${targetUser.email} ? Toutes ses sessions actives seront invalidées immédiatement.`)) return;
+            try {
+                const res = await fetch(`${API_URL}/users/${targetUser.id}/disconnect`, {
+                    method: 'POST',
+                    headers: authHeader()
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(data.message || "Utilisateur déconnecté avec succès.");
+                    fetchUsers();
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || "Erreur lors de la déconnexion forcée.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Erreur de communication avec le serveur.");
+            }
+        };
+
+        const openRoleModal = (targetUser) => {
+            roleModalUser.value = targetUser;
+            roleModalForm.value = {
+                discord_role: targetUser.discord_role ? 1 : 0
+            };
+            showRoleModal.value = true;
+        };
+
+        const saveUserRoles = async () => {
+            if (!roleModalUser.value) return;
+            try {
+                const res = await fetch(`${API_URL}/users/${roleModalUser.value.id}/roles`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', ...authHeader() },
+                    body: JSON.stringify({
+                        discord_role: Number(roleModalForm.value.discord_role)
+                    })
+                });
+                if (res.ok) {
+                    const updated = await res.json();
+                    roleModalUser.value.discord_role = updated.discord_role;
+                    showRoleModal.value = false;
+                    fetchUsers();
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || "Erreur lors de la mise à jour des rôles.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Erreur serveur.");
+            }
+        };
+
+        const promptDeleteUser = (targetUser) => {
+            if (user.value && targetUser.id === user.value.id) {
+                alert("Vous ne pouvez pas supprimer votre propre compte.");
+                return;
+            }
+            deleteUserTarget.value = targetUser;
+            showDeleteUserModal.value = true;
+        };
+
+        const executeDeleteUser = async () => {
+            if (!deleteUserTarget.value) return;
+            try {
+                const res = await fetch(`${API_URL}/users/${deleteUserTarget.value.id}`, {
+                    method: 'DELETE',
+                    headers: authHeader()
+                });
+                if (res.ok) {
+                    allUsers.value = allUsers.value.filter(u => u.id !== deleteUserTarget.value.id);
+                    showDeleteUserModal.value = false;
+                    deleteUserTarget.value = null;
+                    alert("Utilisateur supprimé totalement avec succès.");
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || "Erreur lors de la suppression.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Erreur serveur.");
+            }
+        };
+
+        const impersonateUser = async (targetUser) => {
+            if (targetUser.is_blocked) {
+                alert("Impossible de se connecter à la place d'un utilisateur bloqué.");
+                return;
+            }
+            if (user.value && targetUser.id === user.value.id) {
+                alert("Vous êtes déjà connecté avec ce compte.");
+                return;
+            }
+            if (!confirm(`Se connecter en tant que ${targetUser.email} ? Vous verrez l'application exactement comme cet utilisateur.`)) return;
+            try {
+                const res = await fetch(`${API_URL}/users/${targetUser.id}/impersonate`, {
+                    method: 'POST',
+                    headers: authHeader()
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const adminToken = localStorage.getItem('token');
+                    localStorage.setItem('admin_impersonator_token', adminToken);
+                    localStorage.setItem('impersonated_user_email', targetUser.email);
+                    localStorage.setItem('token', data.access_token);
+                    document.cookie = `token=${data.access_token}; max-age=315360000; path=/`;
+                    localStorage.setItem('currentTab', 'planning');
+                    window.location.reload();
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || "Erreur lors de l'emprunt d'identité.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Erreur de connexion.");
+            }
+        };
+
+        const stopImpersonating = () => {
+            const adminToken = localStorage.getItem('admin_impersonator_token');
+            if (adminToken) {
+                localStorage.setItem('token', adminToken);
+                document.cookie = `token=${adminToken}; max-age=315360000; path=/`;
+                localStorage.removeItem('admin_impersonator_token');
+                localStorage.removeItem('impersonated_user_email');
+                localStorage.setItem('currentTab', 'admin');
+                localStorage.setItem('adminSubTab', 'utilisateurs');
+                window.location.reload();
+            } else {
+                logout();
+            }
+        };
+
         const openCreateEventModal = (startTime = null, endTime = null) => {
             if (!user.value || !user.value.is_manager) return;
             eventForm.value.editingEventIds = null;
@@ -646,9 +881,7 @@ createApp({
             }
             eventPopover.value.show = false;
         };
-        onMounted(() => {
-            fetchUser();
-        });
+
         // Discord Methods
         const loadDiscordData = async () => {
             if (!user.value || user.value.discord_role !== 1) return;
@@ -679,6 +912,7 @@ createApp({
                 discordRefreshInterval = null;
             }
             if (newTab === 'discord' && user.value && user.value.discord_role === 1) {
+                discordTab.value = 'tickets';
                 loadDiscordData();
                 discordRefreshInterval = setInterval(() => {
                     if (user.value && user.value.discord_role === 1) {
@@ -938,6 +1172,7 @@ createApp({
                 filtered = filtered.filter(t => 
                     (t.id && t.id.toString().includes(s)) || 
                     (t.creator_id && t.creator_id.toString().includes(s)) ||
+                    (t.creator_username && t.creator_username.toLowerCase().includes(s)) ||
                     (t.status && t.status.toLowerCase().includes(s))
                 );
             }
@@ -953,6 +1188,76 @@ createApp({
             return filtered;
         });
 
+        // 🚀 Infinite Scroll progressif côté front
+        const displayedDiscordTickets = computed(() => {
+            return filteredDiscordTickets.value.slice(0, visibleTicketsLimit.value);
+        });
+
+        const hasMoreTickets = computed(() => {
+            return visibleTicketsLimit.value < filteredDiscordTickets.value.length;
+        });
+
+        const loadMoreTickets = () => {
+            if (isLoadingMoreTickets.value || !hasMoreTickets.value) return;
+            isLoadingMoreTickets.value = true;
+            setTimeout(() => {
+                visibleTicketsLimit.value += ticketsPageSize;
+                isLoadingMoreTickets.value = false;
+            }, 120);
+        };
+
+        let ticketsObserver = null;
+        const initTicketsObserver = () => {
+            if (ticketsObserver) {
+                ticketsObserver.disconnect();
+                ticketsObserver = null;
+            }
+            const sentinel = document.getElementById('tickets-infinite-sentinel');
+            if (sentinel && window.IntersectionObserver) {
+                ticketsObserver = new IntersectionObserver((entries) => {
+                    const entry = entries[0];
+                    if (entry && entry.isIntersecting && hasMoreTickets.value && !isLoadingMoreTickets.value) {
+                        loadMoreTickets();
+                    }
+                }, {
+                    root: null,
+                    rootMargin: '250px',
+                    threshold: 0.05
+                });
+                ticketsObserver.observe(sentinel);
+            }
+        };
+
+        const handleWindowScroll = () => {
+            if (currentTab.value === 'discord' && discordTab.value === 'tickets') {
+                const scrollPos = window.innerHeight + window.scrollY;
+                const docHeight = document.documentElement.scrollHeight;
+                if (scrollPos >= docHeight - 350 && hasMoreTickets.value && !isLoadingMoreTickets.value) {
+                    loadMoreTickets();
+                }
+            }
+        };
+
+        watch([discordSearch, discordDateFilter, discordSortDate], () => {
+            visibleTicketsLimit.value = ticketsPageSize;
+            setTimeout(initTicketsObserver, 50);
+        });
+
+        watch(discordTab, (tab) => {
+            if (tab === 'tickets') {
+                setTimeout(initTicketsObserver, 150);
+            }
+        });
+
+        watch(displayedDiscordTickets, () => {
+            setTimeout(initTicketsObserver, 100);
+        });
+
+        onMounted(() => {
+            fetchUser();
+            window.addEventListener('scroll', handleWindowScroll, { passive: true });
+            setTimeout(initTicketsObserver, 500);
+        });
 
         return {
             user, currentTab, loginForm, eventForm, shiftTypeForm, inviteEmail, teamMembers, shiftTypes, apiUrl: API_URL, fullApiUrl: FULL_API_URL, loginError,
@@ -964,7 +1269,11 @@ createApp({
             showDiscordFieldsModal, discordFields, currentFieldPanelId, discordFieldForm, showDiscordDeployModal, discordDeployForm,
             saveDiscordPanel, deleteDiscordPanel, openDeployModal, executeDiscordDeploy, openFieldsManager, saveDiscordField, deleteDiscordField,
             openCreateDiscordPanel, openEditDiscordPanel,
-            openDiscordArchive, closeDiscordTicket, filteredDiscordTickets, loadDiscordData
+            openDiscordArchive, closeDiscordTicket, filteredDiscordTickets, loadDiscordData,
+            displayedDiscordTickets, hasMoreTickets, loadMoreTickets, visibleTicketsLimit, isLoadingMoreTickets, ticketsPageSize,
+            adminSubTab, allUsers, userSearch, userFilterTeam, userFilterStatus, filteredUsers, isImpersonating, impersonatedEmail,
+            showRoleModal, roleModalUser, roleModalForm, showDeleteUserModal, deleteUserTarget,
+            fetchUsers, toggleBlockUser, disconnectUser, openRoleModal, saveUserRoles, promptDeleteUser, executeDeleteUser, impersonateUser, stopImpersonating
         };
     }
 }).mount('#app');

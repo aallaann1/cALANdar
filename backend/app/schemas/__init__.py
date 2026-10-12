@@ -19,12 +19,19 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = None
     password: Optional[str] = None
 
+class UserRolesUpdate(BaseModel):
+    discord_role: Optional[int] = None
+    is_manager: Optional[bool] = None
+
 class User(UserBase):
     id: int
     is_manager: bool
     is_admin: bool
-    discord_role: int = 0
+    is_blocked: Optional[bool] = False
+    discord_role: Optional[int] = 0
+    token_version: Optional[int] = 0
     team_id: Optional[int] = None
+    team_name: Optional[str] = None
 
     class Config:
         from_attributes = True

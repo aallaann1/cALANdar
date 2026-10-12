@@ -14,11 +14,17 @@ class User(Base):
     profile_picture = Column(String, nullable=True)
     is_manager = Column(Boolean, default=False)
     is_admin = Column(Boolean, default=False)
+    is_blocked = Column(Boolean, default=False)
     discord_role = Column(Integer, default=0)
+    token_version = Column(Integer, default=0)
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
 
     team = relationship("Team", back_populates="members", foreign_keys=[team_id])
-    events = relationship("Event", back_populates="user")
+    events = relationship("Event", back_populates="user", cascade="all, delete-orphan")
+
+    @property
+    def team_name(self):
+        return self.team.name if self.team else None
 
 class Team(Base):
     __tablename__ = "teams"

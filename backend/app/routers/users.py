@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models import User, Invitation, Team
-from app.schemas import UserUpdate, User as UserSchema
+from app.models import User, Invitation, Team, Event
+from app.schemas import UserUpdate, UserRolesUpdate, User as UserSchema
 from app.auth import get_current_user, get_current_admin
+from app.core.security import create_access_token
 from datetime import datetime
 
 router = APIRouter()
@@ -52,4 +53,83 @@ def update_user_me(user_in: UserUpdate, current_user: User = Depends(get_current
 
 @router.get("/", response_model=list[UserSchema])
 def read_all_users(db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
-    return db.query(User).all()
+    return db.query(User).order_by(User.id.asc()).all()
+
+@router.put("/{user_id}/toggle-block", response_model=UserSchema)
+def toggle_block_user(user_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    if target_user.id == admin.id:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas bloquer votre propre compte administrateur.")
+    
+    target_user.is_blocked = not bool(target_user.is_blocked)
+    # If now blocked, invalidate all active sessions immediately
+    if target_user.is_blocked:
+        target_user.token_version = (target_user.token_version or 0) + 1
+    db.commit()
+    db.refresh(target_user)
+    return target_user
+
+@router.post("/{user_id}/disconnect")
+def disconnect_user(user_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    target_user.token_version = (target_user.token_version or 0) + 1
+    db.commit()
+    return {"message": f"Toutes les sessions de {target_user.email} ont été révoquées avec succès."}
+
+@router.put("/{user_id}/roles", response_model=UserSchema)
+def update_user_roles(user_id: int, roles_in: UserRolesUpdate, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    if roles_in.discord_role is not None:
+        target_user.discord_role = roles_in.discord_role
+    if roles_in.is_manager is not None:
+        target_user.is_manager = roles_in.is_manager
+        
+    db.commit()
+    db.refresh(target_user)
+    return target_user
+
+@router.delete("/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    if target_user.id == admin.id:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas supprimer votre propre compte administrateur.")
+    
+    # Delete associated events first
+    db.query(Event).filter(Event.user_id == target_user.id).delete()
+    db.delete(target_user)
+    db.commit()
+    return {"message": "Utilisateur supprimé totalement avec succès."}
+
+@router.post("/{user_id}/impersonate")
+def impersonate_user(user_id: int, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    if bool(target_user.is_blocked):
+        raise HTTPException(status_code=400, detail="Impossible de se connecter à la place d'un utilisateur bloqué.")
+    
+    token = create_access_token(data={
+        "sub": target_user.email,
+        "token_version": target_user.token_version or 0,
+        "impersonated_by": admin.email
+    })
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": target_user.id,
+            "email": target_user.email,
+            "first_name": target_user.first_name,
+            "last_name": target_user.last_name
+        }
+    }

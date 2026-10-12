@@ -98,6 +98,9 @@ def google_auth(token_in: GoogleToken, db: Session = Depends(get_db)):
 
     user = db.query(User).filter(User.email == email).first()
     
+    if user and bool(user.is_blocked):
+        raise HTTPException(status_code=403, detail="Votre compte a été bloqué par un administrateur.")
+        
     if not user:
         # Create a new user with no team
         user = User(
@@ -118,5 +121,5 @@ def google_auth(token_in: GoogleToken, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    access_token = create_access_token(data={"sub": user.email})
+    access_token = create_access_token(data={"sub": user.email, "token_version": user.token_version or 0})
     return {"access_token": access_token, "token_type": "bearer"}

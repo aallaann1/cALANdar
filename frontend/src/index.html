@@ -223,43 +223,69 @@
 </head>
 <body class="text-slate-800 antialiased">
     <div id="app" v-cloak class="min-h-screen flex flex-col">
-        <!-- Navigation -->
-        <nav v-if="user" class="glass-nav sticky top-0 z-50 transition-all duration-300">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center h-16">
-                    <div class="flex items-center gap-3">
-                        <img v-if="user.profile_picture" :src="user.profile_picture" @error="user.profile_picture = null" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
-                        <img src="/assets/logo-horizontal.svg" alt="cALANdar Logo" class="h-9 cursor-pointer drop-shadow-sm" @click="currentTab = 'planning'; mobileMenuOpen = false">
+        <!-- Sticky Header Container (Banner + Nav) -->
+        <div class="sticky top-0 z-50">
+            <!-- Impersonation Banner -->
+            <div v-if="isImpersonating" class="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white px-4 py-3 shadow-lg flex flex-wrap items-center justify-between gap-3 border-b border-amber-600/60 backdrop-blur-sm">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 animate-pulse">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
                     </div>
-                    
-                    <!-- Desktop Nav -->
-                    <div class="hidden md:flex space-x-1 bg-slate-100/80 p-1 rounded-xl">
-                        <button @click="currentTab = 'planning'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'planning', 'text-slate-600 hover:text-slate-900': currentTab !== 'planning'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Mon planning</button>
-                        <button @click="currentTab = 'profile'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'profile', 'text-slate-600 hover:text-slate-900': currentTab !== 'profile'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Profil</button>
-                        <button v-if="user.is_manager && user.team_id" @click="currentTab = 'gestion'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'gestion', 'text-slate-600 hover:text-slate-900': currentTab !== 'gestion'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Gestion</button>
-                        <button v-if="user.is_admin" @click="currentTab = 'admin'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'admin', 'text-slate-600 hover:text-slate-900': currentTab !== 'admin'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Admin</button>
-                        <button v-if="user.discord_role === 1" @click="currentTab = 'discord'" :class="{'bg-white shadow-sm text-[#5865F2]': currentTab === 'discord', 'text-slate-600 hover:text-slate-900': currentTab !== 'discord'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
-                            Discord
-                        </button>
-                    </div>
-
-                    <div class="flex items-center gap-4">
-                        <button @click="logout" class="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors hidden md:block">Déconnexion</button>
-                    <!-- Mobile Menu Button -->
-                    <div class="flex md:hidden items-center gap-2">
-                        <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 text-slate-700 hover:text-primary-600 rounded-xl bg-slate-100 hover:bg-slate-200 transition focus:outline-none" aria-label="Menu">
-                            <svg v-if="!mobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-                            </svg>
-                            <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
+                    <div class="text-xs sm:text-sm truncate">
+                        <span class="font-medium text-amber-100">Vous êtes connecté en tant que</span>
+                        <strong class="ml-1 text-white underline decoration-amber-300 font-bold tracking-wide">{{ impersonatedEmail }}</strong>
                     </div>
                 </div>
+                <button type="button" @click="stopImpersonating" class="bg-white hover:bg-amber-50 text-orange-700 hover:text-orange-800 font-extrabold px-4 py-1.5 rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-95 flex items-center gap-1.5 text-xs sm:text-sm shrink-0 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                    Quitter
+                </button>
             </div>
-        </nav>
+
+            <!-- Navigation -->
+            <nav v-if="user" class="glass-nav transition-all duration-300">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between items-center h-16">
+                        <div class="flex items-center gap-3">
+                            <img v-if="user.profile_picture" :src="user.profile_picture" @error="user.profile_picture = null" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
+                            <img src="/assets/logo-horizontal.svg" alt="cALANdar Logo" class="h-9 cursor-pointer drop-shadow-sm" @click="currentTab = 'planning'; mobileMenuOpen = false">
+                        </div>
+                        
+                        <!-- Desktop Nav -->
+                        <div class="hidden md:flex space-x-1 bg-slate-100/80 p-1 rounded-xl">
+                            <button @click="currentTab = 'planning'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'planning', 'text-slate-600 hover:text-slate-900': currentTab !== 'planning'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Mon planning</button>
+                            <button @click="currentTab = 'profile'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'profile', 'text-slate-600 hover:text-slate-900': currentTab !== 'profile'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Profil</button>
+                            <button v-if="user.is_manager && user.team_id" @click="currentTab = 'gestion'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'gestion', 'text-slate-600 hover:text-slate-900': currentTab !== 'gestion'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Gestion</button>
+                            <button v-if="user.is_admin" @click="currentTab = 'admin'" :class="{'bg-white shadow-sm text-primary-600': currentTab === 'admin', 'text-slate-600 hover:text-slate-900': currentTab !== 'admin'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all">Admin</button>
+                            <button v-if="user.discord_role === 1" @click="currentTab = 'discord'; discordTab = 'tickets'" :class="{'bg-white shadow-sm text-[#5865F2]': currentTab === 'discord', 'text-slate-600 hover:text-slate-900': currentTab !== 'discord'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                                Discord
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <button @click="logout" class="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors hidden md:block">Déconnexion</button>
+                            <!-- Mobile Menu Button -->
+                            <div class="flex md:hidden items-center gap-2">
+                                <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 text-slate-700 hover:text-primary-600 rounded-xl bg-slate-100 hover:bg-slate-200 transition focus:outline-none" aria-label="Menu">
+                                    <svg v-if="!mobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                                    </svg>
+                                    <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
 
         <!-- Mobile Drawer Overlay (Full screen viewport) -->
         <div v-if="mobileMenuOpen" class="fixed inset-0 z-[100] md:hidden">
@@ -279,6 +305,17 @@
                     </div>
                     <button @click="mobileMenuOpen = false" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Impersonation Notice in Drawer on Mobile -->
+                <div v-if="isImpersonating" class="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-2">
+                    <div class="min-w-0 text-xs text-amber-900">
+                        <span class="font-medium text-amber-700 block">Mode Emprunt :</span>
+                        <strong class="truncate block font-bold text-amber-950">{{ impersonatedEmail }}</strong>
+                    </div>
+                    <button type="button" @click="stopImpersonating(); mobileMenuOpen = false" class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow transition shrink-0 cursor-pointer">
+                        Quitter
                     </button>
                 </div>
 
@@ -312,7 +349,7 @@
                         <span>Administration</span>
                     </button>
                     
-                    <button v-if="user.discord_role === 1" @click="currentTab = 'discord'; mobileMenuOpen = false" :class="{'bg-primary-50 text-primary-700 font-bold': currentTab === 'discord', 'text-slate-700 hover:bg-slate-50 font-medium': currentTab !== 'discord'}" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm transition">
+                    <button v-if="user.discord_role === 1" @click="currentTab = 'discord'; discordTab = 'tickets'; mobileMenuOpen = false" :class="{'bg-primary-50 text-primary-700 font-bold': currentTab === 'discord', 'text-slate-700 hover:bg-slate-50 font-medium': currentTab !== 'discord'}" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm transition">
                         <div :class="{'bg-[#5865F2] text-white': currentTab === 'discord', 'bg-slate-100 text-slate-500': currentTab !== 'discord'}" class="w-8 h-8 rounded-lg flex items-center justify-center">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
                         </div>
@@ -594,7 +631,24 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        <!-- Admin Sub-navigation -->
+                        <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
+                            <button @click="adminSubTab = 'equipes'" 
+                                    :class="{'bg-purple-600 text-white font-bold shadow-md shadow-purple-500/20': adminSubTab === 'equipes', 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium border border-slate-200': adminSubTab !== 'equipes'}"
+                                    class="px-4 py-2.5 rounded-xl text-sm transition-all flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                Équipes ({{allTeams.length}})
+                            </button>
+                            <button @click="adminSubTab = 'utilisateurs'" 
+                                    :class="{'bg-purple-600 text-white font-bold shadow-md shadow-purple-500/20': adminSubTab === 'utilisateurs', 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium border border-slate-200': adminSubTab !== 'utilisateurs'}"
+                                    class="px-4 py-2.5 rounded-xl text-sm transition-all flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                Utilisateurs ({{allUsers.length}})
+                            </button>
+                        </div>
+
+                        <!-- Équipes Section -->
+                        <div v-show="adminSubTab === 'equipes'" class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                             
                             <!-- Create Team -->
                             <div class="xl:col-span-1 card p-6 h-fit border-t-4 border-t-purple-500">
@@ -659,36 +713,450 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Utilisateurs Section -->
+                        <div v-show="adminSubTab === 'utilisateurs'" class="space-y-6">
+                            
+                            <!-- Stat Cards -->
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div class="card p-4 sm:p-5 flex items-center gap-4 bg-white border border-slate-100 shadow-sm">
+                                    <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total</span>
+                                        <span class="text-2xl font-extrabold text-slate-800">{{ allUsers.length }}</span>
+                                    </div>
+                                </div>
+                                <div class="card p-4 sm:p-5 flex items-center gap-4 bg-white border border-slate-100 shadow-sm">
+                                    <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Actifs</span>
+                                        <span class="text-2xl font-extrabold text-emerald-600">{{ allUsers.filter(u => !u.is_blocked).length }}</span>
+                                    </div>
+                                </div>
+                                <div class="card p-4 sm:p-5 flex items-center gap-4 bg-white border border-slate-100 shadow-sm">
+                                    <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Bloqués</span>
+                                        <span class="text-2xl font-extrabold text-rose-600">{{ allUsers.filter(u => u.is_blocked).length }}</span>
+                                    </div>
+                                </div>
+                                <div class="card p-4 sm:p-5 flex items-center gap-4 bg-white border border-slate-100 shadow-sm">
+                                    <div class="w-12 h-12 rounded-2xl bg-[#5865F2]/10 text-[#5865F2] flex items-center justify-center shrink-0">
+                                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Discord</span>
+                                        <span class="text-2xl font-extrabold text-[#5865F2]">{{ allUsers.filter(u => u.discord_role === 1).length }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Filter & Search Toolbar -->
+                            <div class="card p-4 sm:p-5 bg-white border border-slate-100 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                                <div class="relative flex-1">
+                                    <svg class="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    <input v-model="userSearch" type="text" placeholder="Rechercher par nom, email ou équipe..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none text-sm transition-all">
+                                </div>
+                                <div class="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                                    <select v-model="userFilterTeam" class="w-full sm:w-auto px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-purple-500 text-sm font-medium text-slate-700 outline-none transition">
+                                        <option value="">Toutes les équipes</option>
+                                        <option value="none">Sans équipe</option>
+                                        <option v-for="t in allTeams" :key="t.id" :value="t.id">{{ t.name }}</option>
+                                    </select>
+                                    <select v-model="userFilterStatus" class="w-full sm:w-auto px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-purple-500 text-sm font-medium text-slate-700 outline-none transition">
+                                        <option value="">Tous les statuts</option>
+                                        <option value="active">Actifs uniquement</option>
+                                        <option value="blocked">Bloqués uniquement</option>
+                                    </select>
+                                    <button @click="fetchUsers" class="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-purple-600 hover:bg-purple-50 transition shrink-0" title="Actualiser la liste">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- User List Desktop Table -->
+                            <div class="hidden md:block card overflow-hidden border border-slate-100 shadow-sm bg-white">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-sm text-slate-600">
+                                        <thead class="bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                            <tr>
+                                                <th class="px-5 py-4">Utilisateur</th>
+                                                <th class="px-5 py-4">Équipe</th>
+                                                <th class="px-5 py-4">Rôles</th>
+                                                <th class="px-5 py-4">Statut</th>
+                                                <th class="px-5 py-4 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            <tr v-for="u in filteredUsers" :key="u.id" class="hover:bg-slate-50/80 transition-colors" :class="{'bg-rose-50/30': u.is_blocked}">
+                                                <!-- Utilisateur -->
+                                                <td class="px-5 py-4">
+                                                    <div class="flex items-center gap-3">
+                                                        <div class="relative shrink-0">
+                                                            <img v-if="u.profile_picture" :src="u.profile_picture" @error="u.profile_picture = null" class="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm">
+                                                            <div v-else class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                                                                {{ (u.first_name?.[0] || u.email[0]).toUpperCase() }}
+                                                            </div>
+                                                            <span :class="u.is_blocked ? 'bg-rose-500' : 'bg-emerald-500'" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white shadow-xs"></span>
+                                                        </div>
+                                                        <div class="min-w-0">
+                                                            <div class="font-bold text-slate-900 truncate flex items-center gap-2">
+                                                                <span>{{ u.first_name || '' }} {{ u.last_name || '' }}</span>
+                                                                <span v-if="u.id === user.id" class="text-[10px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded">Vous</span>
+                                                            </div>
+                                                            <div class="text-xs text-slate-500 font-mono truncate">{{ u.email }}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <!-- Équipe -->
+                                                <td class="px-5 py-4">
+                                                    <span v-if="u.team_name" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/60">
+                                                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                                        {{ u.team_name }}
+                                                    </span>
+                                                    <span v-else class="text-xs text-slate-400 italic">Aucune équipe</span>
+                                                </td>
+                                                <!-- Rôles -->
+                                                <td class="px-5 py-4">
+                                                    <div class="flex flex-wrap gap-1.5 items-center">
+                                                        <span v-if="u.is_admin" class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200/60">Admin</span>
+                                                        <span v-if="u.is_manager" class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200/60">Gestionnaire</span>
+                                                        <span v-if="u.discord_role === 1" class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#5865F2]/10 text-[#5865F2] border border-[#5865F2]/20 flex items-center gap-1">
+                                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                                                            Discord
+                                                        </span>
+                                                        <span v-if="!u.is_admin && !u.is_manager && u.discord_role !== 1" class="text-xs text-slate-400">Membre</span>
+                                                    </div>
+                                                </td>
+                                                <!-- Statut -->
+                                                <td class="px-5 py-4">
+                                                    <span v-if="u.is_blocked" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                                        Bloqué
+                                                    </span>
+                                                    <span v-else class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                        Actif
+                                                    </span>
+                                                </td>
+                                                <!-- Actions -->
+                                                <td class="px-5 py-4 text-right">
+                                                    <div class="flex items-center justify-end gap-1.5">
+                                                        <!-- Voir en tant que -->
+                                                        <button v-if="u.id !== user.id" @click="impersonateUser(u)" :disabled="u.is_blocked" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm" :class="u.is_blocked ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white hover:shadow-md active:scale-95'" title="Se connecter en tant que cet utilisateur">
+                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                                            <span>Voir en tant que</span>
+                                                        </button>
+
+                                                        <!-- Gérer Rôles -->
+                                                        <button @click="openRoleModal(u)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/60 transition flex items-center gap-1" title="Gérer les rôles">
+                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                                            <span>Rôles</span>
+                                                        </button>
+
+                                                        <!-- Bloquer / Débloquer -->
+                                                        <button v-if="u.id !== user.id" @click="toggleBlockUser(u)" class="p-1.5 rounded-lg text-xs font-bold transition border" :class="u.is_blocked ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' : 'bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700 border-slate-200 hover:border-rose-200'" :title="u.is_blocked ? 'Débloquer l\'utilisateur' : 'Bloquer l\'utilisateur'">
+                                                            <svg v-if="!u.is_blocked" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                                            <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg>
+                                                        </button>
+
+                                                        <!-- Déconnecter -->
+                                                        <button v-if="u.id !== user.id" @click="disconnectUser(u)" class="p-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-amber-50 hover:text-amber-700 border border-slate-200 hover:border-amber-200 transition" title="Forcer la déconnexion de l'utilisateur">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                                        </button>
+
+                                                        <!-- Supprimer -->
+                                                        <button v-if="u.id !== user.id" @click="promptDeleteUser(u)" class="p-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700 border border-slate-200 hover:border-rose-200 transition" title="Supprimer définitivement l'utilisateur">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr v-if="filteredUsers.length === 0">
+                                                <td colspan="5" class="px-5 py-8 text-center text-slate-400 italic">
+                                                    Aucun utilisateur trouvé avec ces critères de recherche.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- User List Mobile Responsive Cards -->
+                            <div class="md:hidden space-y-3">
+                                <div v-for="u in filteredUsers" :key="u.id" class="card p-4 bg-white border border-slate-200 shadow-sm" :class="{'border-rose-200 bg-rose-50/20': u.is_blocked}">
+                                    <div class="flex items-start justify-between gap-3 mb-3">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <div class="relative shrink-0">
+                                                <img v-if="u.profile_picture" :src="u.profile_picture" @error="u.profile_picture = null" class="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-sm">
+                                                <div v-else class="w-11 h-11 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold flex items-center justify-center text-base shadow-sm">
+                                                    {{ (u.first_name?.[0] || u.email[0]).toUpperCase() }}
+                                                </div>
+                                                <span :class="u.is_blocked ? 'bg-rose-500' : 'bg-emerald-500'" class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white shadow-xs"></span>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="font-bold text-slate-900 truncate text-sm flex items-center gap-1.5">
+                                                    <span>{{ u.first_name || '' }} {{ u.last_name || '' }}</span>
+                                                    <span v-if="u.id === user.id" class="text-[10px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.2 rounded">Vous</span>
+                                                </div>
+                                                <div class="text-xs text-slate-500 font-mono truncate">{{ u.email }}</div>
+                                            </div>
+                                        </div>
+                                        <span v-if="u.is_blocked" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700 shrink-0">Bloqué</span>
+                                        <span v-else class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 shrink-0">Actif</span>
+                                    </div>
+
+                                    <div class="flex flex-wrap items-center gap-1.5 py-2 border-t border-b border-slate-100 text-xs">
+                                        <span v-if="u.team_name" class="font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                            🏢 {{ u.team_name }}
+                                        </span>
+                                        <span v-else class="text-slate-400 italic">Sans équipe</span>
+                                        <span v-if="u.is_admin" class="bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-md text-[10px]">Admin</span>
+                                        <span v-if="u.is_manager" class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md text-[10px]">Gestionnaire</span>
+                                        <span v-if="u.discord_role === 1" class="bg-[#5865F2]/10 text-[#5865F2] font-bold px-2 py-0.5 rounded-md text-[10px]">Discord</span>
+                                    </div>
+
+                                    <div class="pt-3 flex flex-wrap gap-2 justify-between items-center">
+                                        <button v-if="u.id !== user.id" @click="impersonateUser(u)" :disabled="u.is_blocked" class="flex-1 min-w-[140px] py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition" :class="u.is_blocked ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600'">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                            Voir en tant que
+                                        </button>
+                                        <div class="flex items-center gap-1.5">
+                                            <button @click="openRoleModal(u)" class="p-2 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Rôles">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                            </button>
+                                            <button v-if="u.id !== user.id" @click="toggleBlockUser(u)" class="p-2 rounded-xl text-xs font-bold border transition" :class="u.is_blocked ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'" :title="u.is_blocked ? 'Débloquer' : 'Bloquer'">
+                                                <svg v-if="!u.is_blocked" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg>
+                                            </button>
+                                            <button v-if="u.id !== user.id" @click="disconnectUser(u)" class="p-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200" title="Déconnecter">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                            </button>
+                                            <button v-if="u.id !== user.id" @click="promptDeleteUser(u)" class="p-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200" title="Supprimer">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="filteredUsers.length === 0" class="card p-6 text-center text-slate-400 italic">
+                                    Aucun utilisateur trouvé.
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
                     
                     <!-- Discord Tab -->
                     <div v-show="currentTab === 'discord' && user.discord_role === 1" class="max-w-6xl mx-auto space-y-6">
-                        <div class="flex space-x-2 border-b border-slate-200 pb-2 mb-6">
-                            <button @click="discordTab = 'gestion'" :class="{'border-b-2 border-[#5865F2] text-[#5865F2]': discordTab === 'gestion', 'text-slate-500 hover:text-slate-700': discordTab !== 'gestion'}" class="px-4 py-2 font-medium">Gestion du bot</button>
-                            <button @click="discordTab = 'tickets'" :class="{'border-b-2 border-[#5865F2] text-[#5865F2]': discordTab === 'tickets', 'text-slate-500 hover:text-slate-700': discordTab !== 'tickets'}" class="px-4 py-2 font-medium">Tickets</button>
-                        </div>
-                        
-                        <!-- Gestion du bot -->
-                        <div v-show="discordTab === 'gestion'" class="space-y-6">
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div class="card p-4 flex flex-col items-center">
-                                    <span class="text-sm text-slate-500">Tickets Totaux</span>
-                                    <span class="text-3xl font-bold text-slate-800">{{ discordStats?.total_tickets || 0 }}</span>
+                        <!-- Top Header with Gear Button -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-[#5865F2]/10 text-[#5865F2] flex items-center justify-center font-bold shadow-sm shrink-0">
+                                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+                                    </svg>
                                 </div>
-                                <div class="card p-4 flex flex-col items-center">
-                                    <span class="text-sm text-slate-500">Tickets Ouverts</span>
-                                    <span class="text-3xl font-bold text-emerald-600">{{ discordStats?.open_tickets || 0 }}</span>
-                                </div>
-                                <div class="card p-4 flex flex-col items-center">
-                                    <span class="text-sm text-slate-500">Tickets Fermés</span>
-                                    <span class="text-3xl font-bold text-slate-400">{{ discordStats?.closed_tickets || 0 }}</span>
+                                <div>
+                                    <h2 class="text-xl font-bold text-slate-800" v-if="discordTab === 'tickets'">Support & Tickets Discord</h2>
+                                    <h2 class="text-xl font-bold text-slate-800" v-else>Configuration des Panels</h2>
+                                    <p class="text-xs text-slate-500" v-if="discordTab === 'tickets'">Statistiques en temps réel et liste des tickets d'assistance</p>
+                                    <p class="text-xs text-slate-500" v-else>Personnalisation des boutons, embeds, salons et questions</p>
                                 </div>
                             </div>
                             
+                            <!-- Bouton engrenage / retour en haut à droite -->
+                            <div class="flex items-center gap-2">
+                                <button v-if="discordTab === 'tickets'" @click="discordTab = 'panels'" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-sm transition hover:shadow group" title="Accéder au paramétrage des panels">
+                                    <svg class="w-5 h-5 text-slate-500 group-hover:text-[#5865F2] transition group-hover:rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    <span>Paramètres des panels</span>
+                                </button>
+                                <button v-else @click="discordTab = 'tickets'" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-sm transition hover:shadow">
+                                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                                    <span>Retour aux tickets</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- VUE 1 : Statistiques + Liste des tickets en dessous -->
+                        <div v-show="discordTab === 'tickets'" class="space-y-6">
+                            <!-- Statistiques des tickets en haut -->
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div class="card p-5 flex items-center justify-between border-l-4 border-l-[#5865F2] hover:shadow-md transition">
+                                    <div>
+                                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Total Tickets</span>
+                                        <span class="text-3xl font-extrabold text-slate-800">{{ discordStats?.total_tickets || 0 }}</span>
+                                    </div>
+                                    <div class="w-12 h-12 rounded-xl bg-[#5865F2]/10 text-[#5865F2] flex items-center justify-center">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="card p-5 flex items-center justify-between border-l-4 border-l-emerald-500 hover:shadow-md transition">
+                                    <div>
+                                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Tickets Ouverts</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-3xl font-extrabold text-emerald-600">{{ discordStats?.open_tickets || 0 }}</span>
+                                            <span v-if="(discordStats?.open_tickets || 0) > 0" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse mr-1"></span> Actifs
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="card p-5 flex items-center justify-between border-l-4 border-l-slate-400 hover:shadow-md transition">
+                                    <div>
+                                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Tickets Fermés</span>
+                                        <span class="text-3xl font-extrabold text-slate-600">{{ discordStats?.closed_tickets || 0 }}</span>
+                                    </div>
+                                    <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Liste de tous les tickets -->
                             <div class="card p-6">
-                                <div class="flex justify-between items-center mb-4">
-                                    <h3 class="text-lg font-bold text-slate-800">Panels Discord</h3>
-                                    <button @click="openCreateDiscordPanel()" class="px-4 py-2 rounded-lg font-semibold transition-colors bg-[#5865F2] text-white hover:bg-[#4752C4] text-sm flex items-center gap-2">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-slate-800">Tous les Tickets</h3>
+                                        <p class="text-xs text-slate-500">Consultez l'historique, les pseudos Discord et les retranscriptions</p>
+                                    </div>
+                                    <button @click="loadDiscordData()" class="self-start sm:self-auto px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 transition" title="Rafraîchir les tickets">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                        Rafraîchir
+                                    </button>
+                                </div>
+
+                                <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                                    <input type="text" v-model="discordSearch" placeholder="Rechercher par numéro, pseudo Discord, ID..." class="input-field flex-1">
+                                    <input type="date" v-model="discordDateFilter" class="input-field w-full sm:w-auto">
+                                    <select v-model="discordSortDate" class="input-field w-full sm:w-auto">
+                                        <option value="desc">Du plus récent</option>
+                                        <option value="asc">Du plus ancien</option>
+                                    </select>
+                                </div>
+
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm text-left text-slate-500">
+                                        <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                                            <tr>
+                                                <th class="px-4 py-3">ID Ticket</th>
+                                                <th class="px-4 py-3">Utilisateur Discord</th>
+                                                <th class="px-4 py-3">Statut</th>
+                                                <th class="px-4 py-3">Date</th>
+                                                <th class="px-4 py-3 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template v-for="ticket in displayedDiscordTickets" :key="ticket.id">
+                                                <tr class="border-b hover:bg-slate-50 transition-colors">
+                                                    <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
+                                                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-[#5865F2]/10 text-[#5865F2]">
+                                                            ticket{{ String(ticket.id).padStart(3, '0') }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-4 py-3">
+                                                        <div class="flex items-center gap-2.5">
+                                                            <div class="w-8 h-8 rounded-full bg-[#5865F2]/10 text-[#5865F2] flex items-center justify-center text-xs font-bold shrink-0">
+                                                                {{ (ticket.creator_username || '?')[0].toUpperCase() }}
+                                                            </div>
+                                                            <div>
+                                                                <span class="font-bold text-slate-900 block leading-tight">
+                                                                    {{ ticket.creator_username || 'Utilisateur inconnu' }}
+                                                                </span>
+                                                                <span v-if="ticket.creator_id" class="text-[11px] font-mono text-slate-400 block">
+                                                                    ID: {{ ticket.creator_id }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-4 py-3 whitespace-nowrap">
+                                                        <span :class="{'bg-emerald-50 text-emerald-700 border border-emerald-200': ticket.status === 'open', 'bg-slate-100 text-slate-600': ticket.status !== 'open'}" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold">
+                                                            <span v-if="ticket.status === 'open'" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                            {{ ticket.status === 'open' ? 'Ouvert' : 'Fermé' }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-slate-600 text-xs">
+                                                        {{ new Date(ticket.created_at).toLocaleString('fr-FR') }}
+                                                    </td>
+                                                    <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
+                                                        <button v-if="ticket.form_answers && Object.keys(ticket.form_answers).length > 0" @click="ticket.showAnswers = !ticket.showAnswers" class="text-indigo-600 font-semibold hover:underline text-xs">
+                                                            {{ ticket.showAnswers ? 'Cacher réponses' : 'Voir réponses' }}
+                                                        </button>
+                                                        <button v-if="ticket.status === 'open'" @click="closeDiscordTicket(ticket.id)" class="text-amber-600 hover:underline font-semibold text-xs">Fermer</button>
+                                                        <button v-if="ticket.status !== 'open'" @click="openDiscordArchive(ticket.id)" class="text-[#5865F2] hover:underline font-semibold text-xs">Archive</button>
+                                                    </td>
+                                                </tr>
+                                                <tr v-if="ticket.showAnswers && ticket.form_answers" class="bg-indigo-50/40 border-b">
+                                                    <td colspan="5" class="px-4 py-3">
+                                                        <div class="space-y-2 text-sm text-slate-700 p-3 rounded-xl bg-white shadow-sm border border-indigo-100">
+                                                            <div class="text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">Réponses au formulaire d'ouverture :</div>
+                                                            <div v-for="(answer, question) in ticket.form_answers" :key="question" class="border-b last:border-b-0 pb-1.5 last:pb-0">
+                                                                <span class="font-semibold text-slate-800 text-xs block">{{ question }}</span>
+                                                                <span class="whitespace-pre-wrap text-slate-600 text-sm">{{ answer }}</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                            <tr v-if="!filteredDiscordTickets.length">
+                                                <td colspan="5" class="px-4 py-8 text-center text-slate-400">Aucun ticket trouvé.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Infinite Scroll Sentinel & Bottom Info Bar -->
+                                <div id="tickets-infinite-sentinel" class="h-2 w-full"></div>
+
+                                <div v-if="filteredDiscordTickets.length > 0" class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-slate-700">
+                                            Affichage de {{ Math.min(visibleTicketsLimit, filteredDiscordTickets.length) }} sur {{ filteredDiscordTickets.length }} ticket(s)
+                                        </span>
+                                        <span v-if="hasMoreTickets" class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-semibold text-[11px]">
+                                            Scroll pour charger la suite
+                                        </span>
+                                        <span v-else class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-[11px]">
+                                            Tous les tickets affichés
+                                        </span>
+                                    </div>
+
+                                    <div v-if="isLoadingMoreTickets" class="flex items-center gap-2 text-[#5865F2] font-semibold animate-pulse">
+                                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                        </svg>
+                                        <span>Chargement des tickets suivants...</span>
+                                    </div>
+
+                                    <button v-else-if="hasMoreTickets" @click="loadMoreTickets" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center gap-1.5">
+                                        <span>Charger plus (+{{ ticketsPageSize }})</span>
+                                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- VUE 2 : Configuration des panels (accessible via le logo engrenage) -->
+                        <div v-show="discordTab === 'panels'" class="space-y-6">
+                            <div class="card p-6">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-slate-800">Panels Discord Configurés</h3>
+                                        <p class="text-xs text-slate-500">Créez et personnalisez vos panels de ticketing à déployer sur vos salons Discord</p>
+                                    </div>
+                                    <button @click="openCreateDiscordPanel()" class="px-4 py-2 rounded-xl font-semibold transition-colors bg-[#5865F2] text-white hover:bg-[#4752C4] text-sm flex items-center gap-2 shadow-sm self-start sm:self-auto">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                         Nouveau Panel
                                     </button>
@@ -705,7 +1173,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="panel in discordPanels" :key="panel.id" class="border-b hover:bg-slate-50/50">
+                                            <tr v-for="panel in discordPanels" :key="panel.id" class="border-b hover:bg-slate-50/50 transition-colors">
                                                 <td class="px-4 py-3 font-semibold text-slate-900">{{ panel.name }}</td>
                                                 <td class="px-4 py-3">
                                                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
@@ -727,7 +1195,7 @@
                                                         Non déployé
                                                     </span>
                                                 </td>
-                                                <td class="px-4 py-3 text-right space-x-3">
+                                                <td class="px-4 py-3 text-right space-x-3 whitespace-nowrap">
                                                     <button @click="openDeployModal(panel)" class="text-[#5865F2] font-semibold hover:underline" title="Envoyer sur Discord">Déployer</button>
                                                     <button @click="openFieldsManager(panel)" class="text-indigo-600 font-semibold hover:underline" title="Gérer les questions">Questions</button>
                                                     <button @click="openEditDiscordPanel(panel)" class="text-primary-600 hover:underline font-semibold">Modifier</button>
@@ -735,69 +1203,7 @@
                                                 </td>
                                             </tr>
                                             <tr v-if="!discordPanels.length">
-                                                <td colspan="5" class="px-4 py-8 text-center text-slate-400">Aucun panel configuré pour le moment.</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Tickets -->
-                        <div v-show="discordTab === 'tickets'" class="space-y-6">
-                            <div class="card p-6">
-                                <div class="flex flex-col sm:flex-row gap-4 mb-6">
-                                    <input type="text" v-model="discordSearch" placeholder="Recherche par mot-clé..." class="input-field flex-1">
-                                    <input type="date" v-model="discordDateFilter" class="input-field w-full sm:w-auto">
-                                    <select v-model="discordSortDate" class="input-field w-full sm:w-auto">
-                                        <option value="desc">Du plus récent</option>
-                                        <option value="asc">Du plus ancien</option>
-                                    </select>
-                                </div>
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-sm text-left text-slate-500">
-                                        <thead class="text-xs text-slate-700 uppercase bg-slate-50">
-                                            <tr>
-                                                <th class="px-4 py-3">ID Ticket</th>
-                                                <th class="px-4 py-3">Statut</th>
-                                                <th class="px-4 py-3">Date</th>
-                                                <th class="px-4 py-3 text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <template v-for="ticket in filteredDiscordTickets" :key="ticket.id">
-                                                <tr class="border-b hover:bg-slate-50">
-                                                    <td class="px-4 py-3 font-medium text-slate-900">
-                                                        <span class="font-mono font-bold text-[#5865F2]">ticket{{ String(ticket.id).padStart(3, '0') }}</span>
-                                                        <span v-if="ticket.creator_id" class="text-[11px] text-slate-400 block font-normal">User: {{ ticket.creator_id }}</span>
-                                                    </td>
-                                                    <td class="px-4 py-3">
-                                                        <span :class="{'bg-emerald-100 text-emerald-800': ticket.status === 'open', 'bg-slate-100 text-slate-800': ticket.status !== 'open'}" class="px-2 py-1 rounded text-xs font-semibold">
-                                                            {{ ticket.status === 'open' ? 'Ouvert' : 'Fermé' }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="px-4 py-3">{{ new Date(ticket.created_at).toLocaleString('fr-FR') }}</td>
-                                                    <td class="px-4 py-3 text-right space-x-3">
-                                                        <button v-if="ticket.form_answers && Object.keys(ticket.form_answers).length > 0" @click="ticket.showAnswers = !ticket.showAnswers" class="text-indigo-600 font-semibold hover:underline">
-                                                            {{ ticket.showAnswers ? 'Cacher les réponses' : 'Voir les réponses' }}
-                                                        </button>
-                                                        <button v-if="ticket.status === 'open'" @click="closeDiscordTicket(ticket.id)" class="text-amber-600 hover:underline font-semibold">Fermer</button>
-                                                        <button v-if="ticket.status !== 'open'" @click="openDiscordArchive(ticket.id)" class="text-primary-600 hover:underline font-semibold">Archive</button>
-                                                    </td>
-                                                </tr>
-                                                <tr v-if="ticket.showAnswers && ticket.form_answers" class="bg-indigo-50/50 border-b">
-                                                    <td colspan="4" class="px-4 py-3">
-                                                        <div class="space-y-2 text-sm text-slate-700 p-2 rounded-lg bg-white shadow-sm border border-indigo-100">
-                                                            <div v-for="(answer, question) in ticket.form_answers" :key="question">
-                                                                <span class="font-bold text-indigo-900 block">{{ question }}</span>
-                                                                <span class="whitespace-pre-wrap">{{ answer }}</span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            </template>
-                                            <tr v-if="!filteredDiscordTickets.length">
-                                                <td colspan="4" class="px-4 py-3 text-center text-slate-500">Aucun ticket trouvé.</td>
+                                                <td colspan="5" class="px-4 py-8 text-center text-slate-400">Aucun panel configuré pour le moment. Cliquez sur "Nouveau Panel" pour en créer un.</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1384,8 +1790,72 @@
                     </div>
                 </teleport>
 
+                <!-- Role Management Modal -->
+                <teleport to="body">
+                    <div v-if="showRoleModal && roleModalUser" @click.self="showRoleModal = false" class="fixed inset-0 z-[350] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                        <div class="w-full max-w-md p-6 bg-white rounded-2xl shadow-2xl border border-slate-100 animate-scale-up">
+                            <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800">Gérer les accès et rôles</h3>
+                                    <p class="text-xs text-slate-500 font-mono mt-0.5 truncate">{{ roleModalUser.email }}</p>
+                                </div>
+                                <button @click="showRoleModal = false" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+
+                            <form @submit.prevent="saveUserRoles" class="space-y-4">
+                                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-8 h-8 rounded-lg bg-[#5865F2]/10 text-[#5865F2] flex items-center justify-center">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                                            </div>
+                                            <div>
+                                                <span class="font-bold text-slate-800 text-sm block">Accès Bot Discord</span>
+                                                <span class="text-xs text-slate-500">Gestion ticketing et panels</span>
+                                            </div>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" :checked="roleModalForm.discord_role === 1" @change="roleModalForm.discord_role = $event.target.checked ? 1 : 0" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5865F2]"></div>
+                                        </label>
+                                    </div>
+                                    <p class="text-xs text-slate-500 pt-1 border-t border-slate-200/60">
+                                        Donne accès à l'onglet "Discord", permettant de configurer les boutons bot et de consulter les archives de tickets.
+                                    </p>
+                                </div>
+
+                                <div class="pt-2 flex gap-3">
+                                    <button type="button" @click="showRoleModal = false" class="px-4 py-2.5 rounded-xl font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 flex-1 text-sm transition">Annuler</button>
+                                    <button type="submit" class="px-4 py-2.5 rounded-xl font-bold bg-purple-600 hover:bg-purple-700 text-white flex-1 text-sm shadow-md transition">Enregistrer</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </teleport>
+
+                <!-- Delete User Modal -->
+                <teleport to="body">
+                    <div v-if="showDeleteUserModal && deleteUserTarget" @click.self="showDeleteUserModal = false" class="fixed inset-0 z-[350] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                        <div class="w-full max-w-md p-6 bg-white rounded-2xl shadow-2xl border border-rose-100 animate-scale-up">
+                            <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            </div>
+                            <h3 class="text-lg font-bold text-center text-slate-800 mb-2">Supprimer définitivement l'utilisateur ?</h3>
+                            <p class="text-sm text-center text-slate-500 mb-5">
+                                Êtes-vous sûr de vouloir supprimer <strong class="text-slate-800 font-mono">{{ deleteUserTarget.email }}</strong> ? Cette action est irréversible et supprimera également tous ses créneaux associés.
+                            </p>
+                            <div class="flex gap-3">
+                                <button type="button" @click="showDeleteUserModal = false" class="px-4 py-2.5 rounded-xl font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 flex-1 text-sm transition">Annuler</button>
+                                <button type="button" @click="executeDeleteUser" class="px-4 py-2.5 rounded-xl font-bold bg-rose-600 hover:bg-rose-700 text-white flex-1 text-sm shadow-md transition">Supprimer</button>
+                            </div>
+                        </div>
+                    </div>
+                </teleport>
+
         </main>
     </div>
-    <script src="app.js?v=20261010-4"></script>
+    <script src="app.js?v=20261011-4"></script>
 </body>
 </html>
