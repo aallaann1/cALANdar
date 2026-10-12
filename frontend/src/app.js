@@ -52,7 +52,7 @@ createApp({
         const deleteUserTarget = ref(null);
         
         // Discord states
-        const discordTab = ref('tickets');
+        const discordTab = ref(['tickets', 'panels'].includes(localStorage.getItem('discordTab')) ? localStorage.getItem('discordTab') : 'tickets');
         const discordStats = ref({});
         const discordPanels = ref([]);
         const discordTickets = ref([]);
@@ -912,7 +912,6 @@ createApp({
                 discordRefreshInterval = null;
             }
             if (newTab === 'discord' && user.value && user.value.discord_role === 1) {
-                discordTab.value = 'tickets';
                 loadDiscordData();
                 discordRefreshInterval = setInterval(() => {
                     if (user.value && user.value.discord_role === 1) {
@@ -1244,6 +1243,7 @@ createApp({
         });
 
         watch(discordTab, (tab) => {
+            localStorage.setItem('discordTab', tab);
             if (tab === 'tickets') {
                 setTimeout(initTicketsObserver, 150);
             }
