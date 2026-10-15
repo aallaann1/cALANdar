@@ -88,6 +88,16 @@ createApp({
         const discordFieldForm = ref({ id: null, label: '', is_paragraph: false, required: true, order: 0 });
         const showDiscordDeployModal = ref(false);
         const discordDeployForm = ref({ panel_id: null, channel_id: '' });
+
+        // Discord Bot Profile states
+        const discordBotProfile = ref({
+            id: '',
+            username: '',
+            avatar_url: '',
+            avatar_preview: null
+        });
+        const isSavingBotProfile = ref(false);
+        const botProfileSaveStatus = ref({ show: false, success: false, message: '' });
         
         const showDiscordTicketArchive = ref(false);
         const discordTicketArchiveHtml = ref('');
@@ -900,8 +910,110 @@ createApp({
                 
                 const channelsRes = await fetch(`${API_URL}/discord/channels`, { headers });
                 if (channelsRes.ok) discordChannels.value = await channelsRes.json();
+
+                fetchBotProfile();
             } catch (err) {
                 console.error("Error loading Discord data:", err);
+            }
+        };
+
+        const fetchBotProfile = async () => {
+            if (!user.value || user.value.discord_role !== 1) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/discord/bot/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    discordBotProfile.value.id = data.id || '';
+                    discordBotProfile.value.username = data.username || '';
+                    discordBotProfile.value.avatar_url = data.avatar_url || '';
+                }
+            } catch (e) {
+                console.error("Error fetching bot profile:", e);
+            }
+        };
+
+        const handleBotAvatarChange = (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            if (file.size > 8 * 1024 * 1024) {
+                alert("L'image sélectionnée est trop volumineuse (maximum 8 Mo).");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                discordBotProfile.value.avatar_preview = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        const cancelBotAvatarPreview = () => {
+            discordBotProfile.value.avatar_preview = null;
+            const input = document.getElementById('botAvatarUpload');
+            if (input) input.value = '';
+        };
+
+        const triggerBotAvatarUpload = () => {
+            const el = document.getElementById('botAvatarUpload');
+            if (el) el.click();
+        };
+
+        const saveBotProfile = async () => {
+            if (isSavingBotProfile.value) return;
+            try {
+                isSavingBotProfile.value = true;
+                botProfileSaveStatus.value = { show: false, success: false, message: '' };
+                const token = localStorage.getItem('token');
+                const payload = {
+                    username: discordBotProfile.value.username,
+                    avatar_base64: discordBotProfile.value.avatar_preview || null
+                };
+                const res = await fetch(`${API_URL}/discord/bot/profile`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    if (data.avatar_url) {
+                        discordBotProfile.value.avatar_url = data.avatar_url;
+                    }
+                    if (data.username) {
+                        discordBotProfile.value.username = data.username;
+                    }
+                    discordBotProfile.value.avatar_preview = null;
+                    const input = document.getElementById('botAvatarUpload');
+                    if (input) input.value = '';
+
+                    botProfileSaveStatus.value = {
+                        show: true,
+                        success: true,
+                        message: data.message || "Profil du bot Discord mis à jour avec succès !"
+                    };
+                    setTimeout(() => {
+                        botProfileSaveStatus.value.show = false;
+                    }, 5000);
+                } else {
+                    botProfileSaveStatus.value = {
+                        show: true,
+                        success: false,
+                        message: data.detail || "Erreur lors de la mise à jour du profil du bot."
+                    };
+                }
+            } catch (err) {
+                console.error("Erreur saveBotProfile:", err);
+                botProfileSaveStatus.value = {
+                    show: true,
+                    success: false,
+                    message: "Erreur de connexion au serveur."
+                };
+            } finally {
+                isSavingBotProfile.value = false;
             }
         };
 
@@ -1271,6 +1383,7 @@ createApp({
             openCreateDiscordPanel, openEditDiscordPanel,
             openDiscordArchive, closeDiscordTicket, filteredDiscordTickets, loadDiscordData,
             displayedDiscordTickets, hasMoreTickets, loadMoreTickets, visibleTicketsLimit, isLoadingMoreTickets, ticketsPageSize,
+            discordBotProfile, isSavingBotProfile, botProfileSaveStatus, fetchBotProfile, handleBotAvatarChange, cancelBotAvatarPreview, triggerBotAvatarUpload, saveBotProfile,
             adminSubTab, allUsers, userSearch, userFilterTeam, userFilterStatus, filteredUsers, isImpersonating, impersonatedEmail,
             showRoleModal, roleModalUser, roleModalForm, showDeleteUserModal, deleteUserTarget,
             fetchUsers, toggleBlockUser, disconnectUser, openRoleModal, saveUserRoles, promptDeleteUser, executeDeleteUser, impersonateUser, stopImpersonating

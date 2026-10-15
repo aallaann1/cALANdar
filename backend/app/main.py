@@ -19,26 +19,40 @@ from app.routers import users, teams, events, ical, discord
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Non-destructive database schema synchronization:
-    # creates new tables and adds missing columns without touching existing data
-    sync_database_schema(engine, Base)
+    # Non-destructive database schema synchronization with retry
+    import time
+    for attempt in range(15):
+        try:
+            sync_database_schema(engine, Base)
+            break
+        except Exception as e:
+            if attempt == 14:
+                raise e
+            time.sleep(1)
     
     # Initialize admin user if missing
-    db = next(get_db())
-    admin_email = settings.ADMIN_EMAIL
-    admin_user = db.query(User).filter(User.email == admin_email).first()
-    if not admin_user:
-        new_admin = User(
-            email=admin_email,
-            hashed_password=get_password_hash("1234"),
-            is_admin=True,
-            is_manager=False,
-            first_name="",
-            last_name=""
-        )
-        db.add(new_admin)
-        db.commit()
-    db.close()
+    for attempt in range(15):
+        try:
+            db = next(get_db())
+            admin_email = settings.ADMIN_EMAIL
+            admin_user = db.query(User).filter(User.email == admin_email).first()
+            if not admin_user:
+                new_admin = User(
+                    email=admin_email,
+                    hashed_password=get_password_hash("1234"),
+                    is_admin=True,
+                    is_manager=False,
+                    first_name="",
+                    last_name=""
+                )
+                db.add(new_admin)
+                db.commit()
+            db.close()
+            break
+        except Exception as e:
+            if attempt == 14:
+                raise e
+            time.sleep(1)
     yield
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
