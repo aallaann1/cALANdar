@@ -66,7 +66,7 @@ createApp({
         const showDiscordPanelModal = ref(false);
         const showDiscordPreviewModal = ref(false);
         const discordPanelForm = ref({ 
-            id: null, name: '', 
+            id: null, name: '', modal_title: '',
             embed_title: '', embed_description: '', embed_color: '#3B82F6',
             button_text: '', button_emoji: '', button_color: 'primary',
             active_category_id: '', archive_category_id: '', ping_role_id: '', 
@@ -75,17 +75,43 @@ createApp({
             close_button_text: 'Fermer le ticket',
             close_button_color: 'danger',
             close_button_emoji: '🔒',
+            close_reason_button_text: 'Fermer avec raison',
+            close_reason_button_color: 'secondary',
+            close_reason_button_emoji: '📝',
             reopen_button_text: 'Ré-ouvrir',
             reopen_button_color: 'success',
             reopen_button_emoji: '🔓',
             delete_button_text: 'Supprimer',
             delete_button_color: 'danger',
-            delete_button_emoji: '🗑️'
+            delete_button_emoji: '🗑️',
+            creator_can_close: true,
+            creator_can_close_with_reason: false,
+            dm_transcript_on_close: true
         });
         const showDiscordFieldsModal = ref(false);
         const discordFields = ref([]);
         const currentFieldPanelId = ref(null);
-        const discordFieldForm = ref({ id: null, label: '', is_paragraph: false, required: true, order: 0 });
+        const currentFieldPanel = ref(null);
+        const previewDropdownOpenIdx = ref(null);
+        const getEmptyDiscordFieldForm = (nextOrder = 0) => ({
+            id: null,
+            label: '',
+            field_type: 'short_text',
+            is_paragraph: false,
+            description: '',
+            placeholder: '',
+            required: true,
+            min_length: null,
+            max_length: null,
+            default_value: '',
+            options: [
+                { label: '', value: '', description: '', emoji: '', default: false }
+            ],
+            min_values: 1,
+            max_values: 1,
+            order: nextOrder
+        });
+        const discordFieldForm = ref(getEmptyDiscordFieldForm(0));
         const showDiscordDeployModal = ref(false);
         const discordDeployForm = ref({ panel_id: null, channel_id: '' });
 
@@ -1044,6 +1070,7 @@ createApp({
             discordPanelForm.value = {
                 id: null,
                 name: '',
+                modal_title: '',
                 embed_title: 'Système de Ticket',
                 embed_description: 'Cliquez sur le bouton ci-dessous pour ouvrir un ticket.',
                 embed_color: '#3B82F6',
@@ -1060,12 +1087,18 @@ createApp({
                 close_button_text: 'Fermer le ticket',
                 close_button_color: 'danger',
                 close_button_emoji: '🔒',
+                close_reason_button_text: 'Fermer avec raison',
+                close_reason_button_color: 'secondary',
+                close_reason_button_emoji: '📝',
                 reopen_button_text: 'Ré-ouvrir',
                 reopen_button_color: 'success',
                 reopen_button_emoji: '🔓',
                 delete_button_text: 'Supprimer',
                 delete_button_color: 'danger',
-                delete_button_emoji: '🗑️'
+                delete_button_emoji: '🗑️',
+                creator_can_close: true,
+                creator_can_close_with_reason: false,
+                dm_transcript_on_close: true
             };
             showDiscordPanelModal.value = true;
         };
@@ -1074,6 +1107,7 @@ createApp({
             discordPanelForm.value = {
                 id: panel.id,
                 name: panel.name || '',
+                modal_title: panel.modal_title || '',
                 embed_title: panel.embed_title || '',
                 embed_description: panel.embed_description || '',
                 embed_color: panel.embed_color || '#3B82F6',
@@ -1092,12 +1126,18 @@ createApp({
                 close_button_text: panel.close_button_text || 'Fermer le ticket',
                 close_button_color: panel.close_button_color || 'danger',
                 close_button_emoji: panel.close_button_emoji || '🔒',
+                close_reason_button_text: panel.close_reason_button_text || 'Fermer avec raison',
+                close_reason_button_color: panel.close_reason_button_color || 'secondary',
+                close_reason_button_emoji: panel.close_reason_button_emoji || '📝',
                 reopen_button_text: panel.reopen_button_text || 'Ré-ouvrir',
                 reopen_button_color: panel.reopen_button_color || 'success',
                 reopen_button_emoji: panel.reopen_button_emoji || '🔓',
                 delete_button_text: panel.delete_button_text || 'Supprimer',
                 delete_button_color: panel.delete_button_color || 'danger',
-                delete_button_emoji: panel.delete_button_emoji || '🗑️'
+                delete_button_emoji: panel.delete_button_emoji || '🗑️',
+                creator_can_close: panel.creator_can_close !== undefined ? Boolean(panel.creator_can_close) : true,
+                creator_can_close_with_reason: panel.creator_can_close_with_reason !== undefined ? Boolean(panel.creator_can_close_with_reason) : false,
+                dm_transcript_on_close: panel.dm_transcript_on_close !== undefined ? Boolean(panel.dm_transcript_on_close) : true
             };
             showDiscordPanelModal.value = true;
         };
@@ -1112,6 +1152,7 @@ createApp({
                 
                 const payload = {
                     name: discordPanelForm.value.name,
+                    modal_title: discordPanelForm.value.modal_title || null,
                     embed_title: discordPanelForm.value.embed_title,
                     embed_description: discordPanelForm.value.embed_description,
                     embed_color: discordPanelForm.value.embed_color,
@@ -1128,12 +1169,18 @@ createApp({
                     close_button_text: discordPanelForm.value.close_button_text,
                     close_button_color: discordPanelForm.value.close_button_color,
                     close_button_emoji: discordPanelForm.value.close_button_emoji,
+                    close_reason_button_text: discordPanelForm.value.close_reason_button_text,
+                    close_reason_button_color: discordPanelForm.value.close_reason_button_color,
+                    close_reason_button_emoji: discordPanelForm.value.close_reason_button_emoji,
                     reopen_button_text: discordPanelForm.value.reopen_button_text,
                     reopen_button_color: discordPanelForm.value.reopen_button_color,
                     reopen_button_emoji: discordPanelForm.value.reopen_button_emoji,
                     delete_button_text: discordPanelForm.value.delete_button_text,
                     delete_button_color: discordPanelForm.value.delete_button_color,
                     delete_button_emoji: discordPanelForm.value.delete_button_emoji,
+                    creator_can_close: Boolean(discordPanelForm.value.creator_can_close),
+                    creator_can_close_with_reason: Boolean(discordPanelForm.value.creator_can_close_with_reason),
+                    dm_transcript_on_close: Boolean(discordPanelForm.value.dm_transcript_on_close),
                 };
                 
                 const res = await fetch(url, {
@@ -1190,14 +1237,87 @@ createApp({
             } catch(e) {}
         };
         
+        const resetDiscordFieldForm = () => {
+            discordFieldForm.value = getEmptyDiscordFieldForm(discordFields.value.length);
+        };
+
+        const editDiscordField = (field) => {
+            const effectiveType = field.field_type || (field.is_paragraph ? 'paragraph' : 'short_text');
+            const clonedOptions = Array.isArray(field.options) && field.options.length > 0
+                ? field.options.map(o => ({
+                    label: o.label || '',
+                    value: o.value || o.label || '',
+                    description: o.description || '',
+                    emoji: o.emoji || '',
+                    default: Boolean(o.default)
+                }))
+                : [{ label: '', value: '', description: '', emoji: '', default: false }];
+
+            discordFieldForm.value = {
+                id: field.id,
+                label: field.label || '',
+                field_type: effectiveType,
+                is_paragraph: effectiveType === 'paragraph',
+                description: field.description || '',
+                placeholder: field.placeholder || '',
+                required: field.required !== undefined ? Boolean(field.required) : true,
+                min_length: field.min_length !== undefined && field.min_length !== null ? field.min_length : null,
+                max_length: field.max_length !== undefined && field.max_length !== null ? field.max_length : null,
+                default_value: field.default_value || '',
+                options: clonedOptions,
+                min_values: field.min_values !== undefined && field.min_values !== null ? field.min_values : 1,
+                max_values: field.max_values || (effectiveType === 'file_upload' ? 5 : 1),
+                order: field.order !== undefined ? field.order : 0
+            };
+        };
+
+        const addDiscordSelectOption = () => {
+            if (!Array.isArray(discordFieldForm.value.options)) {
+                discordFieldForm.value.options = [];
+            }
+            if (discordFieldForm.value.options.length >= 25) {
+                alert("Discord limite les listes déroulantes à 25 options maximum.");
+                return;
+            }
+            discordFieldForm.value.options.push({
+                label: '',
+                value: '',
+                description: '',
+                emoji: '',
+                default: false
+            });
+        };
+
+        const removeDiscordSelectOption = (idx) => {
+            if (!Array.isArray(discordFieldForm.value.options)) return;
+            if (discordFieldForm.value.options.length <= 1) {
+                discordFieldForm.value.options = [{ label: '', value: '', description: '', emoji: '', default: false }];
+                return;
+            }
+            discordFieldForm.value.options.splice(idx, 1);
+        };
+
+        const moveDiscordSelectOption = (idx, dir) => {
+            const opts = discordFieldForm.value.options;
+            if (!Array.isArray(opts)) return;
+            const target = idx + dir;
+            if (target < 0 || target >= opts.length) return;
+            const temp = opts[idx];
+            opts[idx] = opts[target];
+            opts[target] = temp;
+        };
+
         const openFieldsManager = async (panel) => {
             currentFieldPanelId.value = panel.id;
+            currentFieldPanel.value = { ...panel };
+            previewDropdownOpenIdx.value = null;
             try {
                 const res = await fetch(`${API_URL}/discord/panels/${panel.id}/fields`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 });
                 if (res.ok) {
                     discordFields.value = await res.json();
+                    resetDiscordFieldForm();
                     showDiscordFieldsModal.value = true;
                 }
             } catch(e) {}
@@ -1208,35 +1328,107 @@ createApp({
                 alert("Discord limite les formulaires à 5 questions maximum.");
                 return;
             }
+            const ftype = discordFieldForm.value.field_type || 'short_text';
+            let validOptions = null;
+            if (ftype === 'select') {
+                validOptions = (discordFieldForm.value.options || [])
+                    .filter(o => o && o.label && String(o.label).trim() !== '')
+                    .map(o => ({
+                        label: String(o.label).trim().slice(0, 100),
+                        value: String(o.value || o.label).trim().slice(0, 100),
+                        description: String(o.description || '').trim().slice(0, 100),
+                        emoji: String(o.emoji || '').trim(),
+                        default: Boolean(o.default)
+                    }));
+                if (validOptions.length === 0) {
+                    alert("Veuillez ajouter au moins un choix dans la liste déroulante.");
+                    return;
+                }
+            }
+
             try {
                 const method = discordFieldForm.value.id ? 'PUT' : 'POST';
                 const url = discordFieldForm.value.id 
                     ? `${API_URL}/discord/fields/${discordFieldForm.value.id}` 
                     : `${API_URL}/discord/panels/${currentFieldPanelId.value}/fields`;
                 
+                const minLen = discordFieldForm.value.min_length !== '' && discordFieldForm.value.min_length !== null
+                    ? parseInt(discordFieldForm.value.min_length)
+                    : null;
+                const maxLen = discordFieldForm.value.max_length !== '' && discordFieldForm.value.max_length !== null
+                    ? parseInt(discordFieldForm.value.max_length)
+                    : null;
+
+                const isReq = Boolean(discordFieldForm.value.required);
+                let minVals = parseInt(discordFieldForm.value.min_values);
+                if (isNaN(minVals)) minVals = isReq ? 1 : 0;
+                if (!isReq && ftype === 'file_upload') minVals = 0;
+
+                let maxVals = parseInt(discordFieldForm.value.max_values) || 1;
+                if (ftype === 'file_upload') {
+                    maxVals = Math.max(1, Math.min(maxVals, 10));
+                    if (isReq) minVals = Math.max(1, Math.min(minVals, maxVals));
+                }
+
                 const res = await fetch(url, {
                     method,
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         label: discordFieldForm.value.label,
-                        is_paragraph: discordFieldForm.value.is_paragraph,
-                        required: discordFieldForm.value.required,
-                        order: discordFieldForm.value.order
+                        field_type: ftype,
+                        is_paragraph: ftype === 'paragraph',
+                        description: discordFieldForm.value.description || null,
+                        placeholder: discordFieldForm.value.placeholder || null,
+                        required: isReq,
+                        min_length: !isNaN(minLen) ? minLen : null,
+                        max_length: !isNaN(maxLen) ? maxLen : null,
+                        default_value: discordFieldForm.value.default_value || null,
+                        options: validOptions,
+                        min_values: minVals,
+                        max_values: maxVals,
+                        order: parseInt(discordFieldForm.value.order) || 0
                     })
                 });
                 if (res.ok) {
-                    // refresh fields
                     const refRes = await fetch(`${API_URL}/discord/panels/${currentFieldPanelId.value}/fields`, {
                         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                     });
                     if (refRes.ok) discordFields.value = await refRes.json();
-                    discordFieldForm.value = { id: null, label: '', is_paragraph: false, required: true, order: 0 };
+                    resetDiscordFieldForm();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert("Erreur : " + (err.detail || "Impossible d'enregistrer la question"));
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.error(e);
+            }
+        };
+
+        const moveDiscordField = async (idx, dir) => {
+            const list = [...discordFields.value];
+            const target = idx + dir;
+            if (target < 0 || target >= list.length) return;
+            const temp = list[idx];
+            list[idx] = list[target];
+            list[target] = temp;
+            list.forEach((f, i) => { f.order = i; });
+            discordFields.value = list;
+            try {
+                const res = await fetch(`${API_URL}/discord/panels/${currentFieldPanelId.value}/fields/reorder`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ field_ids: list.map(f => f.id) })
+                });
+                if (res.ok) {
+                    discordFields.value = await res.json();
+                }
+            } catch (e) {
+                console.error(e);
+            }
         };
         
         const deleteDiscordField = async (id) => {
-            if(!confirm("Supprimer ce champ ?")) return;
+            if(!confirm("Supprimer cette question ?")) return;
             try {
                 const res = await fetch(`${API_URL}/discord/fields/${id}`, {
                     method: 'DELETE',
@@ -1244,16 +1436,34 @@ createApp({
                 });
                 if (res.ok) {
                     discordFields.value = discordFields.value.filter(f => f.id !== id);
+                    if (discordFieldForm.value.id === id) {
+                        resetDiscordFieldForm();
+                    }
                 }
             } catch(e) {}
         };
 
-        const closeDiscordTicket = async (id) => {
-            if(!confirm("Fermer ce ticket ?")) return;
+        const closeDiscordTicket = async (id, withReason = false) => {
+            let reason = null;
+            if (withReason) {
+                const input = prompt("Indiquez le motif de fermeture du ticket (sera affiché dans l'archive et envoyé en MP au créateur) :", "");
+                if (input === null) return;
+                reason = input.trim();
+                if (!reason) {
+                    alert("Veuillez saisir un motif de fermeture.");
+                    return;
+                }
+            } else {
+                if (!confirm("Fermer ce ticket ?")) return;
+            }
             try {
                 const res = await fetch(`${API_URL}/discord/tickets/${id}/close`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(reason ? { reason } : {})
                 });
                 if (res.ok) {
                     loadDiscordData();
@@ -1261,6 +1471,20 @@ createApp({
                     alert("Erreur lors de la fermeture du ticket");
                 }
             } catch(e) {}
+        };
+
+        const parseAnswerAttachments = (answer) => {
+            if (!answer || typeof answer !== 'string') return [];
+            const regex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+            const matches = [];
+            let match;
+            while ((match = regex.exec(answer)) !== null) {
+                const filename = match[1];
+                const url = match[2];
+                const isImage = /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(filename) || /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+                matches.push({ filename, url, isImage });
+            }
+            return matches;
         };
 
         const openDiscordArchive = async (ticketId) => {
@@ -1282,8 +1506,10 @@ createApp({
                 const s = discordSearch.value.toLowerCase();
                 filtered = filtered.filter(t => 
                     (t.id && t.id.toString().includes(s)) || 
+                    (t.ticket_name && t.ticket_name.toLowerCase().includes(s)) ||
                     (t.creator_id && t.creator_id.toString().includes(s)) ||
                     (t.creator_username && t.creator_username.toLowerCase().includes(s)) ||
+                    (t.close_reason && t.close_reason.toLowerCase().includes(s)) ||
                     (t.status && t.status.toLowerCase().includes(s))
                 );
             }
@@ -1378,10 +1604,11 @@ createApp({
             updateMyTeam, handleMyTeamLogoUpload, removeMember, editEvent, deleteEvent, openCreateEventModal, addEventOnSameSlot,
             discordTab, discordStats, discordPanels, discordTickets, discordChannels, discordSearch, discordDateFilter, discordSortDate, 
             showDiscordPanelModal, showDiscordPreviewModal, discordPanelForm, showDiscordTicketArchive, discordTicketArchiveHtml, 
-            showDiscordFieldsModal, discordFields, currentFieldPanelId, discordFieldForm, showDiscordDeployModal, discordDeployForm,
+            showDiscordFieldsModal, discordFields, currentFieldPanelId, currentFieldPanel, previewDropdownOpenIdx, discordFieldForm, showDiscordDeployModal, discordDeployForm,
             saveDiscordPanel, deleteDiscordPanel, openDeployModal, executeDiscordDeploy, openFieldsManager, saveDiscordField, deleteDiscordField,
+            resetDiscordFieldForm, editDiscordField, addDiscordSelectOption, removeDiscordSelectOption, moveDiscordSelectOption, moveDiscordField,
             openCreateDiscordPanel, openEditDiscordPanel,
-            openDiscordArchive, closeDiscordTicket, filteredDiscordTickets, loadDiscordData,
+            openDiscordArchive, closeDiscordTicket, parseAnswerAttachments, filteredDiscordTickets, loadDiscordData,
             displayedDiscordTickets, hasMoreTickets, loadMoreTickets, visibleTicketsLimit, isLoadingMoreTickets, ticketsPageSize,
             discordBotProfile, isSavingBotProfile, botProfileSaveStatus, fetchBotProfile, handleBotAvatarChange, cancelBotAvatarPreview, triggerBotAvatarUpload, saveBotProfile,
             adminSubTab, allUsers, userSearch, userFilterTeam, userFilterStatus, filteredUsers, isImpersonating, impersonatedEmail,
