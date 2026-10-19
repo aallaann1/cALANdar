@@ -52,7 +52,7 @@ createApp({
         const deleteUserTarget = ref(null);
         
         // Discord states
-        const discordTab = ref(['tickets', 'panels'].includes(localStorage.getItem('discordTab')) ? localStorage.getItem('discordTab') : 'tickets');
+        const discordTab = ref(['tickets', 'announcements', 'panels'].includes(localStorage.getItem('discordTab')) ? localStorage.getItem('discordTab') : 'tickets');
         const discordStats = ref({});
         const discordPanels = ref([]);
         const discordTickets = ref([]);
@@ -65,13 +65,80 @@ createApp({
         const isLoadingMoreTickets = ref(false);
         const showDiscordPanelModal = ref(false);
         const showDiscordPreviewModal = ref(false);
+        const discordPreviewTab = ref('panel'); // 'panel', 'ticket', 'closed', 'how_to_sell'
+        const discordSettingsSubTab = ref(['panels', 'how_to_sell', 'bot'].includes(localStorage.getItem('discordSettingsSubTab')) ? localStorage.getItem('discordSettingsSubTab') : 'panels'); // 'panels', 'how_to_sell', 'bot'
+        
+
+
+        // Module Paramètres : Guide « Comment Vendre » (Embed dédié permanent)
+        const howToSellForm = ref({
+            id: null,
+            key: 'how_to_sell',
+            title: 'Comment vendre votre collection',
+            channel_id: '',
+            deployed_message_id: null,
+            embed_title: '📖 Comment vendre votre collection ?',
+            embed_title_url: '',
+            embed_description: '',
+            embed_color: '#5865F2',
+            embed_author_name: '',
+            embed_author_icon_url: '',
+            embed_author_url: '',
+            embed_thumbnail_url: '',
+            embed_image_url: '',
+            embed_footer_text: 'BRB Collection • Guide Officiel',
+            embed_footer_icon_url: '',
+            embed_show_timestamp: false,
+            updated_at: null
+        });
+        const isSavingHowToSell = ref(false);
+        const howToSellStatus = ref({ show: false, success: true, message: '' });
+
+        // Module Annonces Discord
+        const discordAnnouncements = ref([]);
+        const showAnnouncementModal = ref(false);
+        const isSavingAnnouncement = ref(false);
+        const announcementStatus = ref({ show: false, success: true, message: '' });
+        const lastSavedAnnouncementChannel = ref(localStorage.getItem('last_announcement_channel_id') || '');
+        const currentDiscordTime = computed(() => {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        });
+        const announcementForm = ref({
+            id: null,
+            title: '',
+            channel_id: localStorage.getItem('last_announcement_channel_id') || '',
+            content: '',
+            enable_embed: true,
+            embed_title: '',
+            embed_title_url: '',
+            embed_description: '',
+            embed_color: '#5865F2',
+            embed_author_name: '',
+            embed_author_icon_url: '',
+            embed_author_url: '',
+            embed_thumbnail_url: '',
+            embed_image_url: '',
+            embed_footer_text: 'BRB Collection • Annonce',
+            embed_footer_icon_url: '',
+            embed_show_timestamp: true
+        });
+
         const discordPanelForm = ref({ 
             id: null, name: '', modal_title: '',
-            embed_title: '', embed_description: '', embed_color: '#3B82F6',
+            embed_title: '', embed_title_url: '', embed_description: '', embed_color: '#3B82F6',
+            embed_author_name: '', embed_author_icon_url: '', embed_author_url: '',
+            embed_thumbnail_url: '', embed_image_url: '',
+            embed_footer_text: 'Système de Ticketing', embed_footer_icon_url: '', embed_show_timestamp: false,
             button_text: '', button_emoji: '', button_color: 'primary',
             active_category_id: '', archive_category_id: '', ping_role_id: '', 
             ping_creator: true, max_tickets_per_user: 1,
-            intro_message: '', inactivity_days: 3,
+            intro_embed_title: 'Bienvenue dans votre ticket',
+            intro_message: '',
+            intro_embed_color: '',
+            intro_thumbnail_url: '',
+            intro_image_url: '',
+            intro_footer_text: '',
+            inactivity_days: 3,
             close_button_text: 'Fermer le ticket',
             close_button_color: 'danger',
             close_button_emoji: '🔒',
@@ -86,7 +153,16 @@ createApp({
             delete_button_emoji: '🗑️',
             creator_can_close: true,
             creator_can_close_with_reason: false,
-            dm_transcript_on_close: true
+            dm_transcript_on_close: true,
+            dm_embed_title: '🔒 Ticket fermé — {ticket_name}',
+            dm_embed_title_url: '',
+            dm_embed_description: 'Votre ticket **{ticket_name}** a été clôturé par **{closed_by}**.\nVous trouverez ci-joint l\'archive complète de votre conversation.',
+            dm_embed_color: '',
+            dm_thumbnail_url: '',
+            dm_image_url: '',
+            dm_footer_text: 'Téléchargez et ouvrez le fichier .html pour relire la conversation.',
+            dm_footer_icon_url: '',
+            dm_show_timestamp: true
         });
         const showDiscordFieldsModal = ref(false);
         const discordFields = ref([]);
@@ -938,6 +1014,8 @@ createApp({
                 if (channelsRes.ok) discordChannels.value = await channelsRes.json();
 
                 fetchBotProfile();
+                loadHowToSellSettings();
+                loadAnnouncements();
             } catch (err) {
                 console.error("Error loading Discord data:", err);
             }
@@ -1043,6 +1121,400 @@ createApp({
             }
         };
 
+        watch(discordSettingsSubTab, (val) => {
+            if (val) localStorage.setItem('discordSettingsSubTab', val);
+        });
+
+        const getDiscordChannelName = (chId) => {
+            if (!chId) return '';
+            for (const g of (discordChannels.value || [])) {
+                const c = (g.channels || []).find(ch => String(ch.id) === String(chId));
+                if (c) return c.name;
+            }
+            return chId;
+        };
+
+
+
+        // --- METHODES PARAMETRES : GUIDE « COMMENT VENDRE » (how_to_sell) ---
+        const loadHowToSellSettings = async () => {
+            if (!user.value || user.value.discord_role !== 1) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/discord/info-embeds/how_to_sell`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.key === 'how_to_sell') {
+                        howToSellForm.value = {
+                            ...howToSellForm.value,
+                            ...data,
+                            channel_id: data.channel_id ? String(data.channel_id) : ''
+                        };
+                    }
+                }
+            } catch (e) {
+                console.error("Error loading how_to_sell settings:", e);
+            }
+        };
+
+        const saveHowToSellSettings = async () => {
+            if (!howToSellForm.value.channel_id) {
+                alert("Veuillez sélectionner un salon Discord de destination pour le guide Comment Vendre.");
+                return;
+            }
+            isSavingHowToSell.value = true;
+            howToSellStatus.value.show = false;
+            try {
+                const token = localStorage.getItem('token');
+                const payload = {
+                    key: 'how_to_sell',
+                    title: howToSellForm.value.title || 'Comment vendre votre collection',
+                    channel_id: howToSellForm.value.channel_id ? String(howToSellForm.value.channel_id) : null,
+                    embed_title: howToSellForm.value.embed_title || '',
+                    embed_title_url: howToSellForm.value.embed_title_url || null,
+                    embed_description: howToSellForm.value.embed_description || '',
+                    embed_color: howToSellForm.value.embed_color || '#5865F2',
+                    embed_author_name: howToSellForm.value.embed_author_name || null,
+                    embed_author_icon_url: howToSellForm.value.embed_author_icon_url || null,
+                    embed_author_url: howToSellForm.value.embed_author_url || null,
+                    embed_thumbnail_url: howToSellForm.value.embed_thumbnail_url || null,
+                    embed_image_url: howToSellForm.value.embed_image_url || null,
+                    embed_footer_text: howToSellForm.value.embed_footer_text || 'BRB Collection • Guide Officiel',
+                    embed_footer_icon_url: howToSellForm.value.embed_footer_icon_url || null,
+                    embed_show_timestamp: Boolean(howToSellForm.value.embed_show_timestamp),
+                    auto_deploy: true
+                };
+
+                const res = await fetch(`${API_URL}/discord/info-embeds/how_to_sell`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    howToSellForm.value = {
+                        ...howToSellForm.value,
+                        ...data,
+                        channel_id: data.channel_id ? String(data.channel_id) : ''
+                    };
+                    howToSellStatus.value = {
+                        show: true,
+                        success: true,
+                        message: data.deploy_status || "Guide « Comment Vendre » mis à jour et déployé avec succès sur Discord !"
+                    };
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    howToSellStatus.value = {
+                        show: true,
+                        success: false,
+                        message: err.detail || "Erreur lors de la sauvegarde du guide."
+                    };
+                }
+            } catch (err) {
+                howToSellStatus.value = {
+                    show: true,
+                    success: false,
+                    message: "Erreur de connexion : " + err.message
+                };
+            } finally {
+                isSavingHowToSell.value = false;
+                setTimeout(() => { howToSellStatus.value.show = false; }, 6000);
+            }
+        };
+
+        const undeployHowToSellMessage = async () => {
+            if (!confirm("Voulez-vous vraiment retirer le guide « Comment Vendre » du salon Discord ?")) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/discord/info-embeds/how_to_sell/undeploy`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    howToSellForm.value = {
+                        ...howToSellForm.value,
+                        ...data,
+                        deployed_message_id: null,
+                        channel_id: data.channel_id ? String(data.channel_id) : ''
+                    };
+                    howToSellStatus.value = {
+                        show: true,
+                        success: true,
+                        message: "Guide retiré avec succès du salon Discord."
+                    };
+                }
+            } catch (e) {
+                alert("Erreur lors du retrait : " + e.message);
+            } finally {
+                setTimeout(() => { howToSellStatus.value.show = false; }, 6000);
+            }
+        };
+
+        const insertIntoHowToSellField = (fieldName, textToInsert) => {
+            const current = howToSellForm.value[fieldName] || '';
+            if (!current) {
+                howToSellForm.value[fieldName] = textToInsert;
+                return;
+            }
+            const isInline = textToInsert.startsWith('{') || textToInsert.startsWith('<') || textToInsert.length <= 4;
+            if (isInline) {
+                howToSellForm.value[fieldName] = current + (current.endsWith(' ') || current.endsWith('\n') ? '' : ' ') + textToInsert;
+            } else {
+                howToSellForm.value[fieldName] = current + (current.endsWith('\n') ? '' : '\n') + textToInsert;
+            }
+        };
+
+        const insertLinkPromptHowToSell = (fieldName) => {
+            const text = prompt("Texte du lien à afficher :", "Consulter notre site");
+            if (!text) return;
+            const url = prompt("Adresse Web (URL commençant par https://) :", "https://");
+            if (!url) return;
+            insertIntoHowToSellField(fieldName, `[${text}](${url})`);
+        };
+
+        // --- METHODES MODULE ANNONCES DISCORD ---
+        const loadAnnouncements = async () => {
+            if (!user.value || user.value.discord_role !== 1) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/discord/announcements`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    discordAnnouncements.value = await res.json();
+                }
+            } catch (e) {
+                console.error("Erreur chargement annonces:", e);
+            }
+        };
+
+        const getDefaultAnnouncementChannelId = () => {
+            const saved = localStorage.getItem('last_announcement_channel_id') || lastSavedAnnouncementChannel.value;
+            if (saved) {
+                for (const g of (discordChannels.value || [])) {
+                    if ((g.channels || []).some(ch => String(ch.id) === String(saved))) {
+                        return String(saved);
+                    }
+                }
+            }
+            for (const g of (discordChannels.value || [])) {
+                if (g.channels && g.channels.length > 0) {
+                    const chId = String(g.channels[0].id);
+                    localStorage.setItem('last_announcement_channel_id', chId);
+                    lastSavedAnnouncementChannel.value = chId;
+                    return chId;
+                }
+            }
+            return saved || '';
+        };
+
+        const onAnnouncementChannelChange = (chId) => {
+            if (chId) {
+                localStorage.setItem('last_announcement_channel_id', String(chId));
+                lastSavedAnnouncementChannel.value = String(chId);
+            }
+        };
+
+        const openCreateAnnouncement = () => {
+            const defaultChannel = getDefaultAnnouncementChannelId();
+            announcementForm.value = {
+                id: null,
+                title: '',
+                channel_id: defaultChannel,
+                content: '',
+                enable_embed: true,
+                embed_title: '',
+                embed_title_url: '',
+                embed_description: '',
+                embed_color: '#5865F2',
+                embed_author_name: '',
+                embed_author_icon_url: '',
+                embed_author_url: '',
+                embed_thumbnail_url: '',
+                embed_image_url: '',
+                embed_footer_text: 'BRB Collection • Annonce',
+                embed_footer_icon_url: '',
+                embed_show_timestamp: true
+            };
+            showAnnouncementModal.value = true;
+        };
+
+        const openEditAnnouncement = (ann) => {
+            const hasExistingEmbed = Boolean(
+                ann.embed_title || 
+                ann.embed_description || 
+                ann.embed_image_url || 
+                ann.embed_thumbnail_url || 
+                ann.embed_author_name || 
+                ann.embed_footer_text
+            );
+            announcementForm.value = {
+                id: ann.id,
+                title: ann.title || '',
+                channel_id: String(ann.channel_id || ''),
+                content: ann.content || '',
+                enable_embed: hasExistingEmbed,
+                embed_title: ann.embed_title || '',
+                embed_title_url: ann.embed_title_url || '',
+                embed_description: ann.embed_description || '',
+                embed_color: ann.embed_color || '#5865F2',
+                embed_author_name: ann.embed_author_name || '',
+                embed_author_icon_url: ann.embed_author_icon_url || '',
+                embed_author_url: ann.embed_author_url || '',
+                embed_thumbnail_url: ann.embed_thumbnail_url || '',
+                embed_image_url: ann.embed_image_url || '',
+                embed_footer_text: ann.embed_footer_text || '',
+                embed_footer_icon_url: ann.embed_footer_icon_url || '',
+                embed_show_timestamp: ann.embed_show_timestamp !== false
+            };
+            showAnnouncementModal.value = true;
+        };
+
+        const saveAnnouncement = async () => {
+            if (!announcementForm.value.channel_id) {
+                alert("Veuillez sélectionner un salon Discord de destination.");
+                return;
+            }
+            // Mémoriser le salon sélectionné de façon semi-permanente
+            localStorage.setItem('last_announcement_channel_id', String(announcementForm.value.channel_id));
+            lastSavedAnnouncementChannel.value = String(announcementForm.value.channel_id);
+
+            const hasContent = Boolean(announcementForm.value.content && announcementForm.value.content.trim());
+            const useEmbed = Boolean(announcementForm.value.enable_embed);
+            const hasEmbed = useEmbed && Boolean(
+                (announcementForm.value.embed_title && announcementForm.value.embed_title.trim()) ||
+                (announcementForm.value.embed_description && announcementForm.value.embed_description.trim()) ||
+                (announcementForm.value.embed_image_url && announcementForm.value.embed_image_url.trim()) ||
+                (announcementForm.value.embed_thumbnail_url && announcementForm.value.embed_thumbnail_url.trim()) ||
+                (announcementForm.value.embed_author_name && announcementForm.value.embed_author_name.trim()) ||
+                (announcementForm.value.embed_footer_text && announcementForm.value.embed_footer_text.trim()) ||
+                announcementForm.value.embed_show_timestamp
+            );
+
+            if (!hasContent && !hasEmbed) {
+                alert("Veuillez saisir un texte d'annonce ou activer et configurer un élément d'embed.");
+                return;
+            }
+
+            isSavingAnnouncement.value = true;
+            try {
+                const token = localStorage.getItem('token');
+                const isEdit = Boolean(announcementForm.value.id);
+                const url = isEdit 
+                    ? `${API_URL}/discord/announcements/${announcementForm.value.id}` 
+                    : `${API_URL}/discord/announcements`;
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const payload = {
+                    title: announcementForm.value.title || (useEmbed && announcementForm.value.embed_title ? announcementForm.value.embed_title : 'Annonce'),
+                    channel_id: String(announcementForm.value.channel_id),
+                    content: announcementForm.value.content || null,
+                    embed_title: useEmbed ? (announcementForm.value.embed_title || null) : null,
+                    embed_title_url: useEmbed ? (announcementForm.value.embed_title_url || null) : null,
+                    embed_description: useEmbed ? (announcementForm.value.embed_description || null) : null,
+                    embed_color: useEmbed ? (announcementForm.value.embed_color || '#5865F2') : null,
+                    embed_author_name: useEmbed ? (announcementForm.value.embed_author_name || null) : null,
+                    embed_author_icon_url: useEmbed ? (announcementForm.value.embed_author_icon_url || null) : null,
+                    embed_author_url: useEmbed ? (announcementForm.value.embed_author_url || null) : null,
+                    embed_thumbnail_url: useEmbed ? (announcementForm.value.embed_thumbnail_url || null) : null,
+                    embed_image_url: useEmbed ? (announcementForm.value.embed_image_url || null) : null,
+                    embed_footer_text: useEmbed ? (announcementForm.value.embed_footer_text || null) : null,
+                    embed_footer_icon_url: useEmbed ? (announcementForm.value.embed_footer_icon_url || null) : null,
+                    embed_show_timestamp: useEmbed ? Boolean(announcementForm.value.embed_show_timestamp) : false
+                };
+
+                const res = await fetch(url, {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    showAnnouncementModal.value = false;
+                    await loadAnnouncements();
+                    announcementStatus.value = {
+                        show: true,
+                        success: true,
+                        message: isEdit ? "Annonce mise à jour avec succès sur Discord !" : "Annonce publiée avec succès sur Discord !"
+                    };
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    announcementStatus.value = {
+                        show: true,
+                        success: false,
+                        message: err.detail || "Erreur lors de la diffusion de l'annonce."
+                    };
+                }
+            } catch (e) {
+                announcementStatus.value = {
+                    show: true,
+                    success: false,
+                    message: "Erreur de connexion au serveur."
+                };
+            } finally {
+                isSavingAnnouncement.value = false;
+                setTimeout(() => { announcementStatus.value.show = false; }, 6000);
+            }
+        };
+
+        const deleteAnnouncement = async (annId) => {
+            if (!confirm("Voulez-vous vraiment supprimer cette annonce ? Elle sera immédiatement supprimée du salon Discord.")) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/discord/announcements/${annId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    await loadAnnouncements();
+                    announcementStatus.value = {
+                        show: true,
+                        success: true,
+                        message: "L'annonce a bien été supprimée de Discord et de l'historique."
+                    };
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.detail || "Erreur lors de la suppression de l'annonce.");
+                }
+            } catch (e) {
+                alert("Erreur de connexion lors de la suppression.");
+            } finally {
+                setTimeout(() => { announcementStatus.value.show = false; }, 5000);
+            }
+        };
+
+        const insertIntoAnnouncementField = (fieldName, textToInsert) => {
+            const current = announcementForm.value[fieldName] || '';
+            if (!current) {
+                announcementForm.value[fieldName] = textToInsert;
+                return;
+            }
+            const isInline = textToInsert.startsWith('{') || textToInsert.startsWith('<') || textToInsert.length <= 4;
+            if (isInline) {
+                announcementForm.value[fieldName] = current + (current.endsWith(' ') || current.endsWith('\n') ? '' : ' ') + textToInsert;
+            } else {
+                announcementForm.value[fieldName] = current + (current.endsWith('\n') ? '' : '\n') + textToInsert;
+            }
+        };
+
+        const insertLinkPromptAnnouncement = (fieldName) => {
+            const text = prompt("Texte du lien à afficher :", "En savoir plus");
+            if (!text) return;
+            const url = prompt("Adresse Web (URL commençant par https://) :", "https://");
+            if (!url) return;
+            insertIntoAnnouncementField(fieldName, `[${text}](${url})`);
+        };
+
         let discordRefreshInterval = null;
         function handleDiscordTab(newTab) {
             if (discordRefreshInterval) {
@@ -1082,7 +1554,31 @@ createApp({
                 ping_role_id: '',
                 ping_creator: true,
                 max_tickets_per_user: 1,
+                embed_title_url: '',
+                embed_description: 'Cliquez sur le bouton ci-dessous pour ouvrir un ticket.',
+                embed_color: '#3B82F6',
+                embed_author_name: '',
+                embed_author_icon_url: '',
+                embed_author_url: '',
+                embed_thumbnail_url: '',
+                embed_image_url: '',
+                embed_footer_text: 'Système de Ticketing',
+                embed_footer_icon_url: '',
+                embed_show_timestamp: false,
+                button_text: 'Ouvrir un ticket',
+                button_emoji: '🎫',
+                button_color: 'primary',
+                active_category_id: '',
+                archive_category_id: '',
+                ping_role_id: '',
+                ping_creator: true,
+                max_tickets_per_user: 1,
+                intro_embed_title: 'Bienvenue dans votre ticket',
                 intro_message: 'Veuillez patienter, un membre du staff va vous répondre.',
+                intro_embed_color: '',
+                intro_thumbnail_url: '',
+                intro_image_url: '',
+                intro_footer_text: '',
                 inactivity_days: 3,
                 close_button_text: 'Fermer le ticket',
                 close_button_color: 'danger',
@@ -1098,7 +1594,16 @@ createApp({
                 delete_button_emoji: '🗑️',
                 creator_can_close: true,
                 creator_can_close_with_reason: false,
-                dm_transcript_on_close: true
+                dm_transcript_on_close: true,
+                dm_embed_title: '🔒 Ticket fermé — {ticket_name}',
+                dm_embed_title_url: '',
+                dm_embed_description: 'Votre ticket **{ticket_name}** a été clôturé par **{closed_by}**.\nVous trouverez ci-joint l\'archive complète de votre conversation.',
+                dm_embed_color: '',
+                dm_thumbnail_url: '',
+                dm_image_url: '',
+                dm_footer_text: 'Téléchargez et ouvrez le fichier .html pour relire la conversation.',
+                dm_footer_icon_url: '',
+                dm_show_timestamp: true
             };
             showDiscordPanelModal.value = true;
         };
@@ -1109,8 +1614,17 @@ createApp({
                 name: panel.name || '',
                 modal_title: panel.modal_title || '',
                 embed_title: panel.embed_title || '',
+                embed_title_url: panel.embed_title_url || '',
                 embed_description: panel.embed_description || '',
                 embed_color: panel.embed_color || '#3B82F6',
+                embed_author_name: panel.embed_author_name || '',
+                embed_author_icon_url: panel.embed_author_icon_url || '',
+                embed_author_url: panel.embed_author_url || '',
+                embed_thumbnail_url: panel.embed_thumbnail_url || '',
+                embed_image_url: panel.embed_image_url || '',
+                embed_footer_text: panel.embed_footer_text !== undefined && panel.embed_footer_text !== null ? panel.embed_footer_text : 'Système de Ticketing',
+                embed_footer_icon_url: panel.embed_footer_icon_url || '',
+                embed_show_timestamp: Boolean(panel.embed_show_timestamp),
                 button_text: panel.button_text || '',
                 button_emoji: panel.button_emoji || '',
                 button_color: panel.button_color || 'primary',
@@ -1119,7 +1633,12 @@ createApp({
                 ping_role_id: panel.ping_role_id ? String(panel.ping_role_id) : '',
                 ping_creator: panel.ping_creator !== undefined ? panel.ping_creator : true,
                 max_tickets_per_user: panel.max_tickets_per_user || 1,
+                intro_embed_title: panel.intro_embed_title || 'Bienvenue dans votre ticket',
                 intro_message: panel.intro_message || '',
+                intro_embed_color: panel.intro_embed_color || '',
+                intro_thumbnail_url: panel.intro_thumbnail_url || '',
+                intro_image_url: panel.intro_image_url || '',
+                intro_footer_text: panel.intro_footer_text || '',
                 inactivity_days: panel.inactivity_days || 3,
                 deployed_channel_id: panel.deployed_channel_id || null,
                 deployed_message_id: panel.deployed_message_id || null,
@@ -1137,9 +1656,94 @@ createApp({
                 delete_button_emoji: panel.delete_button_emoji || '🗑️',
                 creator_can_close: panel.creator_can_close !== undefined ? Boolean(panel.creator_can_close) : true,
                 creator_can_close_with_reason: panel.creator_can_close_with_reason !== undefined ? Boolean(panel.creator_can_close_with_reason) : false,
-                dm_transcript_on_close: panel.dm_transcript_on_close !== undefined ? Boolean(panel.dm_transcript_on_close) : true
+                dm_transcript_on_close: panel.dm_transcript_on_close !== undefined ? Boolean(panel.dm_transcript_on_close) : true,
+                dm_embed_title: panel.dm_embed_title || '🔒 Ticket fermé — {ticket_name}',
+                dm_embed_title_url: panel.dm_embed_title_url || '',
+                dm_embed_description: panel.dm_embed_description !== undefined && panel.dm_embed_description !== null ? panel.dm_embed_description : 'Votre ticket **{ticket_name}** a été clôturé par **{closed_by}**.\nVous trouverez ci-joint l\'archive complète de votre conversation.',
+                dm_embed_color: panel.dm_embed_color || '',
+                dm_thumbnail_url: panel.dm_thumbnail_url || '',
+                dm_image_url: panel.dm_image_url || '',
+                dm_footer_text: panel.dm_footer_text !== undefined && panel.dm_footer_text !== null ? panel.dm_footer_text : 'Téléchargez et ouvrez le fichier .html pour relire la conversation.',
+                dm_footer_icon_url: panel.dm_footer_icon_url || '',
+                dm_show_timestamp: panel.dm_show_timestamp !== undefined ? Boolean(panel.dm_show_timestamp) : true
             };
             showDiscordPanelModal.value = true;
+        };
+
+        const insertIntoPanelField = (fieldName, textToInsert) => {
+            const current = discordPanelForm.value[fieldName] || '';
+            if (!current) {
+                discordPanelForm.value[fieldName] = textToInsert;
+                return;
+            }
+            const isInline = textToInsert.startsWith('{') || textToInsert.startsWith('<') || textToInsert.length <= 4;
+            if (isInline) {
+                discordPanelForm.value[fieldName] = current + (current.endsWith(' ') || current.endsWith('\n') ? '' : ' ') + textToInsert;
+            } else {
+                discordPanelForm.value[fieldName] = current + (current.endsWith('\n') ? '' : '\n') + textToInsert;
+            }
+        };
+
+        const insertLinkPrompt = (fieldName) => {
+            const text = prompt("Texte du lien à afficher :", "Consulter notre site");
+            if (!text) return;
+            const url = prompt("Adresse Web (URL commençant par https://) :", "https://");
+            if (!url) return;
+            insertIntoPanelField(fieldName, `[${text}](${url})`);
+        };
+
+        const formatDiscordPreview = (rawText) => {
+            if (!rawText) return '';
+            let safe = String(rawText)
+                .replace(/{ticket_name}/g, 'alan-001')
+                .replace(/{user_name}/g, 'alan')
+                .replace(/{closed_by}/g, '@Staff')
+                .replace(/{close_reason}|{reason}/g, 'Achat conclu / Lot validé')
+                .replace(/{panel_name}/g, discordPanelForm.value.name || 'Support')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            // Salons <#123456789>
+            safe = safe.replace(/&lt;#(\d+)&gt;/g, (match, chId) => {
+                let chName = 'salon';
+                for (const g of (discordChannels.value || [])) {
+                    const c = (g.channels || g.text_channels || []).find(tc => String(tc.id) === String(chId));
+                    if (c) { chName = c.name; break; }
+                }
+                return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#5865F2]/20 text-[#c9cdfb] font-medium text-xs hover:bg-[#5865F2]/30 cursor-pointer align-baseline select-none"><span class="opacity-70">#</span>${chName}</span>`;
+            });
+
+            // Rôles <@&123456789>
+            safe = safe.replace(/&lt;@&amp;(\d+)&gt;/g, (match, rId) => {
+                let rName = 'rôle';
+                for (const g of (discordChannels.value || [])) {
+                    const r = (g.roles || []).find(ro => String(ro.id) === String(rId));
+                    if (r) { rName = r.name; break; }
+                }
+                return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#5865F2]/20 text-[#c9cdfb] font-medium text-xs hover:bg-[#5865F2]/30 cursor-pointer align-baseline select-none"><span class="opacity-70">@</span>${rName}</span>`;
+            });
+
+            // Utilisateurs <@123456789>
+            safe = safe.replace(/&lt;@!?(\d+)&gt;/g, '<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-[#5865F2]/20 text-[#c9cdfb] font-medium text-xs hover:bg-[#5865F2]/30 cursor-pointer align-baseline select-none">@utilisateur</span>');
+
+            // Liens masqués [Texte](URL)
+            safe = safe.replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[#00a8fc] hover:underline cursor-pointer">$1</a>');
+
+            // Formatages Markdown gras, italique, souligné, barré, code
+            safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-white">$1</strong>');
+            safe = safe.replace(/\*([^*]+)\*/g, '<em class="italic text-[#dbdee1]">$1</em>');
+            safe = safe.replace(/__([^_]+)__/g, '<span class="underline">$1</span>');
+            safe = safe.replace(/~~([^~]+)~~/g, '<span class="line-through text-gray-400">$1</span>');
+            safe = safe.replace(/`([^`]+)`/g, '<code class="bg-[#1e1f22] text-[#e0e1e5] px-1 py-0.5 rounded font-mono text-xs">$1</code>');
+
+            // Citations markdown "> Citation"
+            safe = safe.replace(/(?:^|\n)&gt; (.*)/g, '\n<div class="border-l-[3px] border-[#4e5058] pl-2 text-[#b5bac1] my-0.5">$1</div>');
+
+            // Sauts de ligne
+            safe = safe.replace(/\n/g, '<br>');
+
+            return safe;
         };
 
         const saveDiscordPanel = async () => {
@@ -1154,8 +1758,17 @@ createApp({
                     name: discordPanelForm.value.name,
                     modal_title: discordPanelForm.value.modal_title || null,
                     embed_title: discordPanelForm.value.embed_title,
+                    embed_title_url: discordPanelForm.value.embed_title_url || null,
                     embed_description: discordPanelForm.value.embed_description,
                     embed_color: discordPanelForm.value.embed_color,
+                    embed_author_name: discordPanelForm.value.embed_author_name || null,
+                    embed_author_icon_url: discordPanelForm.value.embed_author_icon_url || null,
+                    embed_author_url: discordPanelForm.value.embed_author_url || null,
+                    embed_thumbnail_url: discordPanelForm.value.embed_thumbnail_url || null,
+                    embed_image_url: discordPanelForm.value.embed_image_url || null,
+                    embed_footer_text: discordPanelForm.value.embed_footer_text || "Système de Ticketing",
+                    embed_footer_icon_url: discordPanelForm.value.embed_footer_icon_url || null,
+                    embed_show_timestamp: Boolean(discordPanelForm.value.embed_show_timestamp),
                     button_text: discordPanelForm.value.button_text,
                     button_emoji: discordPanelForm.value.button_emoji,
                     button_color: discordPanelForm.value.button_color,
@@ -1164,7 +1777,12 @@ createApp({
                     ping_role_id: discordPanelForm.value.ping_role_id || null,
                     ping_creator: discordPanelForm.value.ping_creator,
                     max_tickets_per_user: parseInt(discordPanelForm.value.max_tickets_per_user) || 1,
+                    intro_embed_title: discordPanelForm.value.intro_embed_title || "Bienvenue dans votre ticket",
                     intro_message: discordPanelForm.value.intro_message,
+                    intro_embed_color: discordPanelForm.value.intro_embed_color || null,
+                    intro_thumbnail_url: discordPanelForm.value.intro_thumbnail_url || null,
+                    intro_image_url: discordPanelForm.value.intro_image_url || null,
+                    intro_footer_text: discordPanelForm.value.intro_footer_text || null,
                     inactivity_days: parseInt(discordPanelForm.value.inactivity_days) || 3,
                     close_button_text: discordPanelForm.value.close_button_text,
                     close_button_color: discordPanelForm.value.close_button_color,
@@ -1181,6 +1799,15 @@ createApp({
                     creator_can_close: Boolean(discordPanelForm.value.creator_can_close),
                     creator_can_close_with_reason: Boolean(discordPanelForm.value.creator_can_close_with_reason),
                     dm_transcript_on_close: Boolean(discordPanelForm.value.dm_transcript_on_close),
+                    dm_embed_title: discordPanelForm.value.dm_embed_title || "🔒 Ticket fermé — {ticket_name}",
+                    dm_embed_title_url: discordPanelForm.value.dm_embed_title_url || null,
+                    dm_embed_description: discordPanelForm.value.dm_embed_description || null,
+                    dm_embed_color: discordPanelForm.value.dm_embed_color || null,
+                    dm_thumbnail_url: discordPanelForm.value.dm_thumbnail_url || null,
+                    dm_image_url: discordPanelForm.value.dm_image_url || null,
+                    dm_footer_text: discordPanelForm.value.dm_footer_text || null,
+                    dm_footer_icon_url: discordPanelForm.value.dm_footer_icon_url || null,
+                    dm_show_timestamp: Boolean(discordPanelForm.value.dm_show_timestamp),
                 };
                 
                 const res = await fetch(url, {
@@ -1207,14 +1834,37 @@ createApp({
         };
 
         const deleteDiscordPanel = async (id) => {
-            if(!confirm("Supprimer ce panel (et ses questions) ?")) return;
+            if(!confirm("Supprimer ce panel (et ses questions) ?\n\nSi le bouton est actuellement présent sur Discord, il sera également supprimé du serveur.")) return;
             try {
                 const res = await fetch(`${API_URL}/discord/panels/${id}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 });
-                if (res.ok) loadDiscordData();
-            } catch(e) {}
+                if (res.ok) {
+                    await loadDiscordData();
+                } else {
+                    alert("Erreur lors de la suppression du panel.");
+                }
+            } catch(e) {
+                alert("Erreur réseau");
+            }
+        };
+
+        const undeployDiscordPanel = async (panel) => {
+            if (!confirm(`Retirer le bouton de Discord pour le panel "${panel.name}" ?\n\nLe message du panel sera immédiatement supprimé du salon Discord.`)) return;
+            try {
+                const res = await fetch(`${API_URL}/discord/panels/${panel.id}/undeploy`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (res.ok) {
+                    await loadDiscordData();
+                } else {
+                    alert("Erreur lors du retrait du panel de Discord.");
+                }
+            } catch(e) {
+                alert("Erreur réseau");
+            }
         };
         
         const openDeployModal = (panel) => {
@@ -1584,6 +2234,18 @@ createApp({
             localStorage.setItem('discordTab', tab);
             if (tab === 'tickets') {
                 setTimeout(initTicketsObserver, 150);
+            } else if (tab === 'announcements') {
+                loadAnnouncements();
+            } else if (tab === 'panels') {
+                if (discordSettingsSubTab.value === 'how_to_sell') {
+                    loadHowToSellSettings();
+                }
+            }
+        });
+
+        watch(discordSettingsSubTab, (sub) => {
+            if (sub === 'how_to_sell') {
+                loadHowToSellSettings();
             }
         });
 
@@ -1603,14 +2265,18 @@ createApp({
             logout, inviteUser, addShiftType, addEvent, createTeam, handleFileUpload, addManager, removeManager, deleteTeam,
             updateMyTeam, handleMyTeamLogoUpload, removeMember, editEvent, deleteEvent, openCreateEventModal, addEventOnSameSlot,
             discordTab, discordStats, discordPanels, discordTickets, discordChannels, discordSearch, discordDateFilter, discordSortDate, 
-            showDiscordPanelModal, showDiscordPreviewModal, discordPanelForm, showDiscordTicketArchive, discordTicketArchiveHtml, 
+            showDiscordPanelModal, showDiscordPreviewModal, discordPreviewTab, discordPanelForm, showDiscordTicketArchive, discordTicketArchiveHtml, 
             showDiscordFieldsModal, discordFields, currentFieldPanelId, currentFieldPanel, previewDropdownOpenIdx, discordFieldForm, showDiscordDeployModal, discordDeployForm,
-            saveDiscordPanel, deleteDiscordPanel, openDeployModal, executeDiscordDeploy, openFieldsManager, saveDiscordField, deleteDiscordField,
+            saveDiscordPanel, deleteDiscordPanel, undeployDiscordPanel, openDeployModal, executeDiscordDeploy, openFieldsManager, saveDiscordField, deleteDiscordField,
             resetDiscordFieldForm, editDiscordField, addDiscordSelectOption, removeDiscordSelectOption, moveDiscordSelectOption, moveDiscordField,
-            openCreateDiscordPanel, openEditDiscordPanel,
+            openCreateDiscordPanel, openEditDiscordPanel, insertIntoPanelField, insertLinkPrompt, formatDiscordPreview,
             openDiscordArchive, closeDiscordTicket, parseAnswerAttachments, filteredDiscordTickets, loadDiscordData,
             displayedDiscordTickets, hasMoreTickets, loadMoreTickets, visibleTicketsLimit, isLoadingMoreTickets, ticketsPageSize,
             discordBotProfile, isSavingBotProfile, botProfileSaveStatus, fetchBotProfile, handleBotAvatarChange, cancelBotAvatarPreview, triggerBotAvatarUpload, saveBotProfile,
+            discordSettingsSubTab, howToSellForm, isSavingHowToSell, howToSellStatus, loadHowToSellSettings, saveHowToSellSettings, undeployHowToSellMessage, insertIntoHowToSellField, insertLinkPromptHowToSell, getDiscordChannelName,
+            discordAnnouncements, showAnnouncementModal, isSavingAnnouncement, announcementStatus, announcementForm, currentDiscordTime,
+            loadAnnouncements, openCreateAnnouncement, openEditAnnouncement, saveAnnouncement, deleteAnnouncement,
+            insertIntoAnnouncementField, insertLinkPromptAnnouncement, lastSavedAnnouncementChannel, onAnnouncementChannelChange,
             adminSubTab, allUsers, userSearch, userFilterTeam, userFilterStatus, filteredUsers, isImpersonating, impersonatedEmail,
             showRoleModal, roleModalUser, roleModalForm, showDeleteUserModal, deleteUserTarget,
             fetchUsers, toggleBlockUser, disconnectUser, openRoleModal, saveUserRoles, promptDeleteUser, executeDeleteUser, impersonateUser, stopImpersonating
