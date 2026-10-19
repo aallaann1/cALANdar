@@ -2253,13 +2253,60 @@ createApp({
             setTimeout(initTicketsObserver, 100);
         });
 
+        // 🎨 Gestion du Thème (Clair / Sombre / Système par défaut)
+        const themeMode = ref(localStorage.getItem('themeMode') || 'system');
+        const resolvedTheme = ref('light');
+
+        const applyTheme = (mode) => {
+            const m = mode || themeMode.value || 'system';
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = m === 'dark' || (m === 'system' && prefersDark);
+            resolvedTheme.value = isDark ? 'dark' : 'light';
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+            const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+            if (metaThemeColor) {
+                metaThemeColor.setAttribute('content', isDark ? '#0f172a' : '#2563EB');
+            }
+        };
+
+        const setThemeMode = (mode) => {
+            if (!['light', 'dark', 'system'].includes(mode)) mode = 'system';
+            themeMode.value = mode;
+            localStorage.setItem('themeMode', mode);
+            applyTheme(mode);
+        };
+
+        // Appliquer dès l'initialisation
+        applyTheme(themeMode.value);
+
         onMounted(() => {
+            applyTheme(themeMode.value);
+            if (window.matchMedia) {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                const handleSystemThemeChange = () => {
+                    if (themeMode.value === 'system') {
+                        applyTheme('system');
+                    }
+                };
+                if (mediaQuery.addEventListener) {
+                    mediaQuery.addEventListener('change', handleSystemThemeChange);
+                } else if (mediaQuery.addListener) {
+                    mediaQuery.addListener(handleSystemThemeChange);
+                }
+            }
             fetchUser();
             window.addEventListener('scroll', handleWindowScroll, { passive: true });
             setTimeout(initTicketsObserver, 500);
         });
 
         return {
+            themeMode, resolvedTheme, setThemeMode,
             user, currentTab, loginForm, eventForm, shiftTypeForm, inviteEmail, teamMembers, shiftTypes, apiUrl: API_URL, fullApiUrl: FULL_API_URL, loginError,
             newTeam, managerForm, allTeams, myTeam, showEventModal, eventPopover, mobileMenuOpen,
             logout, inviteUser, addShiftType, addEvent, createTeam, handleFileUpload, addManager, removeManager, deleteTeam,
