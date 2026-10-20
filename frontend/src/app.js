@@ -66,7 +66,15 @@ createApp({
         const showDiscordPanelModal = ref(false);
         const showDiscordPreviewModal = ref(false);
         const discordPreviewTab = ref('panel'); // 'panel', 'ticket', 'closed', 'how_to_sell'
-        const discordSettingsSubTab = ref(['panels', 'how_to_sell', 'bot'].includes(localStorage.getItem('discordSettingsSubTab')) ? localStorage.getItem('discordSettingsSubTab') : 'panels'); // 'panels', 'how_to_sell', 'bot'
+        const discordSettingsSubTab = ref(['panels', 'how_to_sell', 'logs', 'bot'].includes(localStorage.getItem('discordSettingsSubTab')) ? localStorage.getItem('discordSettingsSubTab') : 'panels'); // 'panels', 'how_to_sell', 'logs', 'bot'
+        
+        // Module Paramètres : Logs des Tickets Discord
+        const discordLogsSettings = ref({
+            logs_enabled: false,
+            logs_channel_id: ''
+        });
+        const isSavingDiscordLogs = ref(false);
+        const discordLogsStatus = ref({ show: false, success: true, message: '' });
         
 
 
@@ -1015,6 +1023,7 @@ createApp({
 
                 fetchBotProfile();
                 loadHowToSellSettings();
+                loadDiscordLogsSettings();
                 loadAnnouncements();
             } catch (err) {
                 console.error("Error loading Discord data:", err);
@@ -1277,6 +1286,79 @@ createApp({
             const url = prompt("Adresse Web (URL commençant par https://) :", "https://");
             if (!url) return;
             insertIntoHowToSellField(fieldName, `[${text}](${url})`);
+        };
+
+        // --- METHODES PARAMETRES : LOGS DES TICKETS DISCORD ---
+        const loadDiscordLogsSettings = async () => {
+            if (!user.value || user.value.discord_role !== 1) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/discord/settings/logs`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    discordLogsSettings.value = {
+                        logs_enabled: Boolean(data.logs_enabled),
+                        logs_channel_id: data.logs_channel_id ? String(data.logs_channel_id) : ''
+                    };
+                }
+            } catch (e) {
+                console.error("Erreur chargement logs settings:", e);
+            }
+        };
+
+        const saveDiscordLogsSettings = async () => {
+            if (discordLogsSettings.value.logs_enabled && !discordLogsSettings.value.logs_channel_id) {
+                alert("Veuillez sélectionner un salon Discord dans lequel écrire les logs des tickets.");
+                return;
+            }
+            isSavingDiscordLogs.value = true;
+            discordLogsStatus.value.show = false;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/discord/settings/logs`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        logs_enabled: Boolean(discordLogsSettings.value.logs_enabled),
+                        logs_channel_id: discordLogsSettings.value.logs_channel_id ? String(discordLogsSettings.value.logs_channel_id) : null
+                    })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    discordLogsSettings.value = {
+                        logs_enabled: Boolean(data.logs_enabled),
+                        logs_channel_id: data.logs_channel_id ? String(data.logs_channel_id) : ''
+                    };
+                    discordLogsStatus.value = {
+                        show: true,
+                        success: true,
+                        message: discordLogsSettings.value.logs_enabled
+                            ? "Les logs des tickets sont activés et configurés avec succès !"
+                            : "Les logs des tickets ont été désactivés."
+                    };
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    discordLogsStatus.value = {
+                        show: true,
+                        success: false,
+                        message: err.detail || "Erreur lors de l'enregistrement de la configuration des logs."
+                    };
+                }
+            } catch (e) {
+                discordLogsStatus.value = {
+                    show: true,
+                    success: false,
+                    message: "Erreur de connexion au serveur."
+                };
+            } finally {
+                isSavingDiscordLogs.value = false;
+                setTimeout(() => { discordLogsStatus.value.show = false; }, 6000);
+            }
         };
 
         // --- METHODES MODULE ANNONCES DISCORD ---
@@ -2093,6 +2175,15 @@ createApp({
             } catch(e) {}
         };
 
+        const getWebActorPayload = () => {
+            if (!user.value) return {};
+            const fullName = `${user.value.first_name || ''} ${user.value.last_name || ''}`.trim();
+            return {
+                actor_name: fullName || user.value.email || 'Utilisateur Web',
+                actor_email: user.value.email || null
+            };
+        };
+
         const closeDiscordTicket = async (id, withReason = false) => {
             let reason = null;
             if (withReason) {
@@ -2107,13 +2198,17 @@ createApp({
                 if (!confirm("Fermer ce ticket ?")) return;
             }
             try {
+                const payload = {
+                    ...getWebActorPayload(),
+                    ...(reason ? { reason } : {})
+                };
                 const res = await fetch(`${API_URL}/discord/tickets/${id}/close`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(reason ? { reason } : {})
+                    body: JSON.stringify(payload)
                 });
                 if (res.ok) {
                     loadDiscordData();
@@ -2121,6 +2216,66 @@ createApp({
                     alert("Erreur lors de la fermeture du ticket");
                 }
             } catch(e) {}
+        };
+
+        const reopenDiscordTicket = async (ticket) => {
+            if (!ticket || !ticket.id) return;
+            const isDeleted = !ticket.channel_id || ticket.channel_exists === false;
+            const label = ticket.ticket_name || ('ticket' + String(ticket.id).padStart(3, '0'));
+            const confirmMsg = isDeleted
+                ? `Le salon Discord du ticket #${label} a été supprimé.\n\nVoulez-vous recréer son salon Discord au bon endroit avec tous ses droits d'origine et ré-ouvrir le ticket ?`
+                : `Voulez-vous ré-ouvrir le ticket #${label} sur Discord ?`;
+            if (!confirm(confirmMsg)) return;
+            try {
+                const res = await fetch(`${API_URL}/discord/tickets/${ticket.id}/reopen`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(getWebActorPayload())
+                });
+                if (res.ok) {
+                    await loadDiscordData();
+                } else {
+                    let errText = "Erreur lors de la réouverture du ticket";
+                    try {
+                        const errData = await res.json();
+                        if (errData && errData.detail) errText = errData.detail;
+                    } catch (_) {}
+                    alert(errText);
+                }
+            } catch (e) {
+                alert("Erreur réseau lors de la réouverture du ticket");
+            }
+        };
+
+        const deleteDiscordTicketChannel = async (ticket) => {
+            if (!ticket || !ticket.id) return;
+            const label = ticket.ticket_name || ('ticket' + String(ticket.id).padStart(3, '0'));
+            if (!confirm(`Supprimer le salon Discord du ticket #${label} ?\n\nL'historique et l'archive HTML resteront intégralement consultables sur l'interface web, et vous pourrez toujours le ré-ouvrir plus tard si besoin.`)) return;
+            try {
+                const res = await fetch(`${API_URL}/discord/tickets/${ticket.id}/delete-channel`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(getWebActorPayload())
+                });
+                if (res.ok) {
+                    await loadDiscordData();
+                } else {
+                    let errText = "Erreur lors de la suppression du salon Discord";
+                    try {
+                        const errData = await res.json();
+                        if (errData && errData.detail) errText = errData.detail;
+                    } catch (_) {}
+                    alert(errText);
+                }
+            } catch (e) {
+                alert("Erreur réseau lors de la suppression du salon Discord");
+            }
         };
 
         const parseAnswerAttachments = (answer) => {
@@ -2239,6 +2394,8 @@ createApp({
             } else if (tab === 'panels') {
                 if (discordSettingsSubTab.value === 'how_to_sell') {
                     loadHowToSellSettings();
+                } else if (discordSettingsSubTab.value === 'logs') {
+                    loadDiscordLogsSettings();
                 }
             }
         });
@@ -2246,6 +2403,8 @@ createApp({
         watch(discordSettingsSubTab, (sub) => {
             if (sub === 'how_to_sell') {
                 loadHowToSellSettings();
+            } else if (sub === 'logs') {
+                loadDiscordLogsSettings();
             }
         });
 
@@ -2317,10 +2476,11 @@ createApp({
             saveDiscordPanel, deleteDiscordPanel, undeployDiscordPanel, openDeployModal, executeDiscordDeploy, openFieldsManager, saveDiscordField, deleteDiscordField,
             resetDiscordFieldForm, editDiscordField, addDiscordSelectOption, removeDiscordSelectOption, moveDiscordSelectOption, moveDiscordField,
             openCreateDiscordPanel, openEditDiscordPanel, insertIntoPanelField, insertLinkPrompt, formatDiscordPreview,
-            openDiscordArchive, closeDiscordTicket, parseAnswerAttachments, filteredDiscordTickets, loadDiscordData,
+            openDiscordArchive, closeDiscordTicket, reopenDiscordTicket, deleteDiscordTicketChannel, parseAnswerAttachments, filteredDiscordTickets, loadDiscordData,
             displayedDiscordTickets, hasMoreTickets, loadMoreTickets, visibleTicketsLimit, isLoadingMoreTickets, ticketsPageSize,
             discordBotProfile, isSavingBotProfile, botProfileSaveStatus, fetchBotProfile, handleBotAvatarChange, cancelBotAvatarPreview, triggerBotAvatarUpload, saveBotProfile,
             discordSettingsSubTab, howToSellForm, isSavingHowToSell, howToSellStatus, loadHowToSellSettings, saveHowToSellSettings, undeployHowToSellMessage, insertIntoHowToSellField, insertLinkPromptHowToSell, getDiscordChannelName,
+            discordLogsSettings, isSavingDiscordLogs, discordLogsStatus, loadDiscordLogsSettings, saveDiscordLogsSettings,
             discordAnnouncements, showAnnouncementModal, isSavingAnnouncement, announcementStatus, announcementForm, currentDiscordTime,
             loadAnnouncements, openCreateAnnouncement, openEditAnnouncement, saveAnnouncement, deleteAnnouncement,
             insertIntoAnnouncementField, insertLinkPromptAnnouncement, lastSavedAnnouncementChannel, onAnnouncementChannelChange,

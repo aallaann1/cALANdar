@@ -15,9 +15,15 @@ async def check_discord_role(user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     return user
 
-async def proxy_request(method: str, path: str, request: Request, **kwargs):
+async def proxy_request(method: str, path: str, request: Request, user: User = None, **kwargs):
     url = f"{settings.DISCORD_BOT_API_URL.rstrip('/')}/{path.lstrip('/')}"
     headers = {"X-API-Key": settings.DISCORD_BOT_API_KEY}
+    if user:
+        full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+        if full_name:
+            headers["X-Actor-Name"] = full_name
+        if user.email:
+            headers["X-Actor-Email"] = user.email
     
     # Forward query parameters
     params = dict(request.query_params)
@@ -50,4 +56,4 @@ async def proxy_request(method: str, path: str, request: Request, **kwargs):
 
 @router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def catch_all(path: str, request: Request, user: User = Depends(check_discord_role)):
-    return await proxy_request(request.method, path, request)
+    return await proxy_request(request.method, path, request, user=user)
